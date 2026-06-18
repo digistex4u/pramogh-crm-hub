@@ -6,7 +6,6 @@ export const config = {
 };
 
 export default function middleware(request) {
-  const cookie = request.cookies.get('pramogh_session');
   const sitePassword = process.env.SITE_PASSWORD;
 
   // If no password is set, skip auth entirely
@@ -14,10 +13,21 @@ export default function middleware(request) {
     return;
   }
 
+  // Parse cookies from headers (standard Web API — no NextRequest needed)
+  const cookieHeader = request.headers.get('cookie') || '';
+  const cookies = Object.fromEntries(
+    cookieHeader.split(';').map(c => {
+      const [k, ...v] = c.trim().split('=');
+      return [k, v.join('=')];
+    }).filter(([k]) => k)
+  );
+
+  const sessionCookie = cookies['pramogh_session'];
+
   // Check session cookie
-  if (cookie) {
+  if (sessionCookie) {
     try {
-      const data = JSON.parse(atob(cookie.value));
+      const data = JSON.parse(atob(decodeURIComponent(sessionCookie)));
       // Check if session is less than 24 hours old
       if (data.ts && Date.now() - data.ts < 86400000) {
         return; // Authorized
@@ -27,8 +37,11 @@ export default function middleware(request) {
     }
   }
 
+  // Use standard URL API instead of request.nextUrl
+  const url = new URL(request.url);
+
   // For API calls, return 401
-  if (request.nextUrl.pathname.startsWith('/api/')) {
+  if (url.pathname.startsWith('/api/')) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
