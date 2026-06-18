@@ -1,1 +1,5 @@
-{"name":"pramogh-crm-hub","version":"1.0.0","private":true}
+{
+  "name": "pramogh-crm-hub",
+  "version": "1.0.0",
+  "private": true
+}
