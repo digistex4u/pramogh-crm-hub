@@ -1,5 +1,11 @@
 {
   "version": 2,
   "buildCommand": "",
-  "outputDirectory": "public"
+  "outputDirectory": "public",
+  "crons": [
+    {
+      "path": "/api/sync-freshsales",
+      "schedule": "15 * * * *"
+    }
+  ]
 }

@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pramogh CRM — Database Admin</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--card:#12121c;--border:#1e1e30;--gold:#c9a44c;--gold-light:#e8c868;--text:#e8e8f0;--muted:#8888a0;--green:#22c55e;--red:#ef4444;--blue:#3b82f6}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+a{color:var(--gold)}
+
+/* Header */
+.header{display:flex;align-items:center;gap:16px;padding:20px 32px;border-bottom:1px solid var(--border)}
+.header .gem{width:40px;height:40px;background:conic-gradient(from 0deg,#c9a44c,#e8c868,#c9a44c,#a07830,#c9a44c);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 0 20px rgba(201,164,76,0.2)}
+.header h1{font-size:18px;background:linear-gradient(135deg,var(--gold-light),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header .tag{font-size:10px;background:var(--gold);color:#000;padding:2px 8px;border-radius:4px;font-weight:700;letter-spacing:1px}
+.header .back{margin-left:auto;font-size:13px;color:var(--muted);text-decoration:none}
+.header .back:hover{color:var(--gold)}
+
+/* Layout */
+.container{max-width:960px;margin:0 auto;padding:32px 24px}
+
+/* Steps */
+.steps{display:flex;gap:0;margin-bottom:32px}
+.step{flex:1;text-align:center;padding:12px 8px;background:var(--card);border:1px solid var(--border);font-size:12px;color:var(--muted);position:relative;cursor:default;transition:all 0.3s}
+.step:first-child{border-radius:8px 0 0 8px}
+.step:last-child{border-radius:0 8px 8px 0}
+.step.active{background:#1a1a2a;color:var(--gold);border-color:var(--gold)}
+.step.done{background:#1a2a1a;color:var(--green);border-color:#2a3a2a}
+.step-num{display:inline-block;width:20px;height:20px;line-height:20px;border-radius:50%;background:var(--border);font-size:10px;font-weight:700;margin-right:6px;text-align:center}
+.step.active .step-num{background:var(--gold);color:#000}
+.step.done .step-num{background:var(--green);color:#000}
+
+/* Panels */
+.panel{display:none;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:32px}
+.panel.active{display:block}
+.panel h2{font-size:16px;margin-bottom:4px}
+.panel .desc{font-size:13px;color:var(--muted);margin-bottom:24px}
+
+/* Upload zone */
+.drop-zone{border:2px dashed var(--border);border-radius:12px;padding:48px 24px;text-align:center;cursor:pointer;transition:all 0.3s}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--gold);background:rgba(201,164,76,0.05)}
+.drop-zone .icon{font-size:40px;margin-bottom:12px}
+.drop-zone p{font-size:14px;margin-bottom:4px}
+.drop-zone .hint{font-size:11px;color:var(--muted)}
+.drop-zone input{display:none}
+
+/* File info */
+.file-info{display:flex;align-items:center;gap:12px;padding:16px;background:rgba(201,164,76,0.08);border:1px solid rgba(201,164,76,0.2);border-radius:8px;margin-top:16px}
+.file-info .fi-icon{font-size:24px}
+.file-info .fi-name{font-size:14px;font-weight:600}
+.file-info .fi-meta{font-size:11px;color:var(--muted)}
+.file-info .fi-remove{margin-left:auto;background:none;border:none;color:var(--red);cursor:pointer;font-size:18px}
+
+/* Column mapper */
+.map-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin-bottom:16px}
+.map-label{font-size:13px;font-weight:600;text-align:right;padding-right:8px}
+.map-arrow{color:var(--muted);font-size:14px}
+.map-select{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-size:13px;width:100%}
+.map-select:focus{outline:none;border-color:var(--gold)}
+.map-required{color:var(--red);font-size:10px}
+.map-section{grid-column:1/-1;font-size:11px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-top:16px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px}
+.stat{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center}
+.stat .num{font-size:28px;font-weight:700;background:linear-gradient(135deg,var(--gold-light),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat .label{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* Preview table */
+.preview-wrap{overflow-x:auto;margin-bottom:24px;border:1px solid var(--border);border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--bg);color:var(--gold);font-weight:600;padding:10px 12px;text-align:left;position:sticky;top:0;white-space:nowrap}
+td{padding:8px 12px;border-top:1px solid var(--border);white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+tr:hover td{background:rgba(201,164,76,0.03)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s}
+.btn-gold{background:var(--gold);color:#000}.btn-gold:hover{background:var(--gold-light)}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}.btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+.btn-green{background:var(--green);color:#000}.btn-green:hover{background:#34d56f}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+.btn-row{display:flex;gap:12px;justify-content:flex-end;margin-top:24px}
+
+/* Admin password */
+.admin-auth{display:flex;gap:12px;margin-bottom:24px}
+.admin-auth input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 16px;color:var(--text);font-size:13px}
+.admin-auth input:focus{outline:none;border-color:var(--gold)}
+
+/* Push status */
+.push-log{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'SF Mono',Consolas,monospace;font-size:12px;max-height:300px;overflow-y:auto;white-space:pre-wrap;line-height:1.8}
+.log-ok{color:var(--green)}.log-err{color:var(--red)}.log-info{color:var(--blue)}.log-wait{color:var(--gold)}
+
+/* Toast */
+.toast{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:999;transform:translateX(120%);transition:transform 0.3s}
+.toast.show{transform:translateX(0)}
+.toast-ok{background:var(--green);color:#000}
+.toast-err{background:var(--red);color:#fff}
+
+/* Responsive */
+@media(max-width:640px){
+  .container{padding:16px 12px}
+  .panel{padding:20px 16px}
+  .steps{flex-wrap:wrap}
+  .step{flex:none;width:calc(50% - 0px)}
+  .step:first-child{border-radius:8px 0 0 0}
+  .step:nth-child(2){border-radius:0 8px 0 0}
+  .step:nth-child(3){border-radius:0 0 0 8px}
+  .step:last-child{border-radius:0 0 8px 0}
+  .map-grid{grid-template-columns:1fr}
+  .map-label{text-align:left}
+  .map-arrow{display:none}
+  .stats{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head><body>
+
+<div class="header">
+  <div class="gem">💎</div>
+  <h1>PRAMOGH</h1>
+  <span class="tag">DB ADMIN</span>
+  <a href="/" class="back">← Back to Dashboard</a>
+</div>
+
+<div class="container">
+  <!-- Step indicators -->
+  <div class="steps">
+    <div class="step active" id="step-ind-1"><span class="step-num">1</span>Upload CSV</div>
+    <div class="step" id="step-ind-2"><span class="step-num">2</span>Map Columns</div>
+    <div class="step" id="step-ind-3"><span class="step-num">3</span>Preview</div>
+    <div class="step" id="step-ind-4"><span class="step-num">4</span>Push Live</div>
+  </div>
+
+  <!-- STEP 1: Upload -->
+  <div class="panel active" id="panel-1">
+    <h2>📄 Upload Freshsales Export</h2>
+    <p class="desc">Drop your CRM CSV export here. The file is processed entirely in your browser — nothing is sent to any server until you push.</p>
+    <div class="drop-zone" id="dropZone">
+      <div class="icon">📁</div>
+      <p>Drag & drop your CSV file here</p>
+      <p class="hint">or click to browse · Supports .csv files up to 100MB</p>
+      <input type="file" accept=".csv,.tsv,.txt" id="fileInput">
+    </div>
+    <div id="fileInfo" style="display:none"></div>
+    <div class="btn-row">
+      <button class="btn btn-gold" id="btnToMap" disabled>Next: Map Columns →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Column Mapping -->
+  <div class="panel" id="panel-2">
+    <h2>🔗 Map CSV Columns</h2>
+    <p class="desc">Match your CSV columns to CRM fields. We've auto-detected what we can — verify and adjust as needed.</p>
+    <div class="map-grid" id="mapGrid"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goStep(1)">← Back</button>
+      <button class="btn btn-gold" id="btnToPreview">Next: Preview Data →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Preview -->
+  <div class="panel" id="panel-3">
+    <h2>👀 Data Preview</h2>
+    <p class="desc">Review processed contacts before pushing live. Duplicates have been merged by phone number.</p>
+    <div class="stats" id="statsGrid"></div>
+    <div class="preview-wrap"><table id="previewTable"></table></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goStep(2)">← Back</button>
+      <button class="btn btn-gold" id="btnToPush">Next: Push Live →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: Push -->
+  <div class="panel" id="panel-4">
+    <h2>🚀 Push to Production</h2>
+    <p class="desc">Enter your admin password to push the updated contacts to GitHub. Vercel auto-deploys in ~45 seconds.</p>
+    <div class="admin-auth">
+      <input type="password" id="adminPw" placeholder="Admin password">
+      <button class="btn btn-green" id="btnPush" onclick="pushToGitHub()">🚀 Push Live</button>
+    </div>
+    <div class="push-log" id="pushLog"><span class="log-info">Ready to push. Enter admin password and click Push Live.</span></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goStep(3)">← Back</button>
+      <button class="btn btn-ghost" id="btnDownload" onclick="downloadJSON()">💾 Download JSON Backup</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── State ───
+let rawRows = [];
+let csvHeaders = [];
+let processedContacts = [];
+let currentStep = 1;
+
+// CRM fields definition
+const CRM_FIELDS = [
+  { key: 'phone', label: 'Phone / Mobile', required: true, section: 'Core Fields', aliases: ['mobile','phone','mobile_number','phone_number','contact_number','mobile number','phone number','whatsapp','mobile phone'] },
+  { key: 'name', label: 'Full Name', required: true, aliases: ['name','full_name','full name','contact_name','contact name','customer_name','customer name'] },
+  { key: 'first_name', label: 'First Name', required: false, aliases: ['first_name','first name','fname'] },
+  { key: 'last_name', label: 'Last Name', required: false, aliases: ['last_name','last name','lname','surname'] },
+  { key: 'email', label: 'Email', required: false, section: 'Contact Details', aliases: ['email','email_address','email address','e-mail'] },
+  { key: 'city', label: 'City', required: false, aliases: ['city','town','location'] },
+  { key: 'state', label: 'State', required: false, aliases: ['state','region','province'] },
+  { key: 'gemstone', label: 'Gemstone Interest', required: false, section: 'CRM Fields', aliases: ['gemstone','gem','stone','product','gemstone_interest','gemstone interest','product_interest','product interest','interested_in','gem type','gemstone type'] },
+  { key: 'stage', label: 'Customer Stage', required: false, aliases: ['stage','lifecycle_stage','lifecycle stage','lead_stage','lead stage','status','customer_stage','customer stage','deal_stage','deal stage','journey_stage'] },
+  { key: 'sales_owner', label: 'Sales Owner', required: false, aliases: ['sales_owner','sales owner','owner','assigned_to','assigned to','agent','rep','sales_rep','sales rep','team_member'] },
+  { key: 'lost_reason', label: 'Lost Reason', required: false, aliases: ['lost_reason','lost reason','reason_lost','close_reason','close reason','lost','reason'] },
+  { key: 'source', label: 'Lead Source', required: false, section: 'Attribution', aliases: ['source','lead_source','lead source','channel','medium','utm_source'] },
+  { key: 'created_at', label: 'Created Date', required: false, aliases: ['created_at','created_time','created date','created','date_created','creation_date','creation date'] },
+  { key: 'updated_at', label: 'Last Updated', required: false, aliases: ['updated_at','updated_time','last_updated','updated','modified','last_modified','modified_time'] },
+  { key: 'deal_value', label: 'Deal Value', required: false, section: 'Revenue', aliases: ['deal_value','deal value','amount','value','revenue','order_value','order value','deal_amount'] },
+  { key: 'tags', label: 'Tags / Labels', required: false, aliases: ['tags','labels','tag','label'] },
+];
+
+// ─── Step Navigation ───
+function goStep(n) {
+  currentStep = n;
+  document.querySelectorAll('.panel').forEach((p, i) => p.classList.toggle('active', i === n - 1));
+  document.querySelectorAll('.step').forEach((s, i) => {
+    s.classList.remove('active', 'done');
+    if (i + 1 === n) s.classList.add('active');
+    else if (i + 1 < n) s.classList.add('done');
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─── Toast ───
+function toast(msg, type = 'ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast toast-' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── CSV Parser ───
+function parseCSV(text) {
+  const lines = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') {
+      if (inQuotes && text[i + 1] === '"') { current += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if ((ch === ',' || ch === '\t') && !inQuotes) {
+      lines.push(current); current = '';
+      if (ch === '\t') lines._isTSV = true;
+    } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+      if (current || lines.length) { lines.push(current); current = ''; }
+      if (lines.length) yield lines.splice(0);
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+    } else {
+      current += ch;
+    }
+  }
+  if (current || lines.length) { lines.push(current); yield lines.splice(0); }
+}
+
+function* parseCSVGen(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') {
+      if (inQuotes && i + 1 < text.length && text[i + 1] === '"') {
+        cell += '"'; i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if ((ch === ',' || ch === '\t') && !inQuotes) {
+      row.push(cell.trim()); cell = '';
+    } else if ((ch === '\n' || (ch === '\r')) && !inQuotes) {
+      row.push(cell.trim()); cell = '';
+      if (row.length > 1 || row[0]) yield row;
+      row = [];
+      if (ch === '\r' && i + 1 < text.length && text[i + 1] === '\n') i++;
+    } else {
+      cell += ch;
+    }
+  }
+  if (cell || row.length) { row.push(cell.trim()); yield row; }
+}
+
+// ─── File Upload ───
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFile(fileInput.files[0]); });
+
+function handleFile(file) {
+  if (!file.name.match(/\.(csv|tsv|txt)$/i)) { toast('Please upload a CSV file', 'err'); return; }
+
+  const info = document.getElementById('fileInfo');
+  const sizeMB = (file.size / 1048576).toFixed(1);
+  info.style.display = 'block';
+  info.innerHTML = `<div class="file-info">
+    <span class="fi-icon">📊</span>
+    <div><div class="fi-name">${file.name}</div><div class="fi-meta">${sizeMB} MB · Parsing...</div></div>
+    <button class="fi-remove" onclick="resetUpload()">✕</button>
+  </div>`;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target.result;
+    rawRows = [];
+    csvHeaders = [];
+    let isFirst = true;
+
+    for (const row of parseCSVGen(text)) {
+      if (isFirst) { csvHeaders = row; isFirst = false; continue; }
+      if (row.length >= 2) rawRows.push(row);
+    }
+
+    info.querySelector('.fi-meta').textContent =
+      `${sizeMB} MB · ${rawRows.length.toLocaleString()} rows · ${csvHeaders.length} columns`;
+    document.getElementById('btnToMap').disabled = false;
+    toast(`Parsed ${rawRows.length.toLocaleString()} rows`);
+  };
+  reader.readAsText(file);
+}
+
+function resetUpload() {
+  rawRows = []; csvHeaders = [];
+  document.getElementById('fileInfo').style.display = 'none';
+  document.getElementById('btnToMap').disabled = true;
+  fileInput.value = '';
+}
+
+document.getElementById('btnToMap').addEventListener('click', () => { buildMapper(); goStep(2); });
+
+// ─── Column Mapping ───
+function autoDetect(csvCol) {
+  const lower = csvCol.toLowerCase().trim();
+  for (const f of CRM_FIELDS) {
+    if (f.aliases.some(a => a === lower)) return f.key;
+  }
+  // Fuzzy match
+  for (const f of CRM_FIELDS) {
+    if (f.aliases.some(a => lower.includes(a) || a.includes(lower))) return f.key;
+  }
+  return '';
+}
+
+function buildMapper() {
+  const grid = document.getElementById('mapGrid');
+  grid.innerHTML = '';
+  let lastSection = '';
+
+  CRM_FIELDS.forEach(f => {
+    if (f.section && f.section !== lastSection) {
+      lastSection = f.section;
+      grid.innerHTML += `<div class="map-section">${f.section}</div>`;
+    }
+
+    const detected = autoDetect(
+      csvHeaders.find(h => autoDetect(h) === f.key) || ''
+    );
+    const options = csvHeaders.map(h =>
+      `<option value="${h}" ${autoDetect(h) === f.key ? 'selected' : ''}>${h}</option>`
+    ).join('');
+
+    grid.innerHTML += `
+      <div class="map-label">${f.label} ${f.required ? '<span class="map-required">*</span>' : ''}</div>
+      <div class="map-arrow">→</div>
+      <select class="map-select" data-field="${f.key}">
+        <option value="">— skip —</option>
+        ${options}
+      </select>`;
+  });
+}
+
+document.getElementById('btnToPreview').addEventListener('click', () => { processData(); goStep(3); });
+
+// ─── Data Processing ───
+function cleanPhone(raw) {
+  if (!raw) return '';
+  let p = String(raw).replace(/[^0-9+]/g, '');
+  // Remove leading +91 or 91 for Indian numbers
+  if (p.startsWith('+91') && p.length === 13) p = p.slice(3);
+  else if (p.startsWith('91') && p.length === 12) p = p.slice(2);
+  // Must be 10 digits for Indian mobile
+  if (p.length === 10 && /^[6-9]/.test(p)) return p;
+  // Keep as-is if it looks international
+  if (p.length > 10) return p;
+  return p.length >= 7 ? p : '';
+}
+
+function cleanName(raw) {
+  if (!raw) return '';
+  return String(raw)
+    .replace(/[`'"]/g, '') // Remove quotes/backticks that break JS
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function processData() {
+  // Get column mappings
+  const mapping = {};
+  document.querySelectorAll('.map-select').forEach(sel => {
+    if (sel.value) mapping[sel.dataset.field] = sel.value;
+  });
+
+  if (!mapping.phone) { toast('Phone column is required!', 'err'); goStep(2); return; }
+
+  // Process rows
+  const phoneIndex = csvHeaders.indexOf(mapping.phone);
+  const byPhone = new Map();
+  let dupeCount = 0;
+
+  rawRows.forEach(row => {
+    const phone = cleanPhone(row[phoneIndex]);
+    if (!phone) return;
+
+    if (byPhone.has(phone)) { dupeCount++; return; } // Keep first occurrence
+
+    const contact = { phone };
+    for (const [field, csvCol] of Object.entries(mapping)) {
+      if (field === 'phone') continue;
+      const idx = csvHeaders.indexOf(csvCol);
+      if (idx === -1) continue;
+      let val = (row[idx] || '').trim();
+
+      if (field === 'name' || field === 'first_name' || field === 'last_name') val = cleanName(val);
+      if (field === 'email') val = val.toLowerCase();
+      if (field === 'deal_value') val = parseFloat(val) || 0;
+
+      if (val) contact[field] = val;
+    }
+
+    // Build full name from first+last if no full name
+    if (!contact.name && (contact.first_name || contact.last_name)) {
+      contact.name = [contact.first_name, contact.last_name].filter(Boolean).join(' ');
+    }
+    delete contact.first_name;
+    delete contact.last_name;
+
+    if (!contact.name) contact.name = 'Unknown';
+
+    byPhone.set(phone, contact);
+  });
+
+  processedContacts = Array.from(byPhone.values());
+
+  // Render stats
+  const stages = {}, gems = {}, owners = {};
+  processedContacts.forEach(c => {
+    if (c.stage) stages[c.stage] = (stages[c.stage] || 0) + 1;
+    if (c.gemstone) gems[c.gemstone] = (gems[c.gemstone] || 0) + 1;
+    if (c.sales_owner) owners[c.sales_owner] = (owners[c.sales_owner] || 0) + 1;
+  });
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat"><div class="num">${processedContacts.length.toLocaleString()}</div><div class="label">Unique Contacts</div></div>
+    <div class="stat"><div class="num">${rawRows.length.toLocaleString()}</div><div class="label">Raw CSV Rows</div></div>
+    <div class="stat"><div class="num">${dupeCount.toLocaleString()}</div><div class="label">Duplicates Merged</div></div>
+    <div class="stat"><div class="num">${Object.keys(stages).length}</div><div class="label">Journey Stages</div></div>
+    <div class="stat"><div class="num">${Object.keys(gems).length}</div><div class="label">Gemstone Types</div></div>
+    <div class="stat"><div class="num">${Object.keys(owners).length}</div><div class="label">Sales Owners</div></div>`;
+
+  // Render preview table
+  const fields = ['phone','name','email','gemstone','stage','sales_owner','city','lost_reason','source','deal_value','tags'];
+  const activeFields = fields.filter(f => processedContacts.some(c => c[f]));
+  const preview = processedContacts.slice(0, 50);
+
+  const table = document.getElementById('previewTable');
+  table.innerHTML = `
+    <thead><tr>${activeFields.map(f => `<th>${f.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</th>`).join('')}</tr></thead>
+    <tbody>${preview.map(c => `<tr>${activeFields.map(f => `<td>${c[f] || '—'}</td>`).join('')}</tr>`).join('')}</tbody>`;
+}
+
+document.getElementById('btnToPush').addEventListener('click', () => goStep(4));
+
+// ─── Push to GitHub ───
+function log(msg, cls = 'info') {
+  const el = document.getElementById('pushLog');
+  el.innerHTML += `\n<span class="log-${cls}">${new Date().toLocaleTimeString()} · ${msg}</span>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+async function pushToGitHub() {
+  const pw = document.getElementById('adminPw').value;
+  if (!pw) { toast('Enter admin password', 'err'); return; }
+
+  const btn = document.getElementById('btnPush');
+  btn.disabled = true;
+  document.getElementById('pushLog').innerHTML = '';
+
+  log('Preparing contacts data...', 'wait');
+
+  // Generate contacts.js content
+  const jsContent = `// Pramogh CRM Contacts Database\n// Auto-generated on ${new Date().toISOString()}\n// ${processedContacts.length.toLocaleString()} unique contacts\nwindow.PRAMOGH_CONTACTS = ${JSON.stringify(processedContacts)};\n`;
+
+  log(`Generated contacts.js — ${(jsContent.length / 1024).toFixed(0)} KB, ${processedContacts.length.toLocaleString()} contacts`, 'ok');
+  log('Pushing to GitHub via API...', 'wait');
+
+  try {
+    const resp = await fetch('/api/update-db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        adminPassword: pw,
+        contacts: jsContent,
+        contactCount: processedContacts.length,
+      }),
+    });
+
+    const result = await resp.json();
+
+    if (resp.ok) {
+      log(`✅ Pushed to GitHub successfully!`, 'ok');
+      log(`Commit: ${result.sha?.slice(0, 7) || 'ok'}`, 'ok');
+      log(`Vercel auto-deploy triggered — site updates in ~45 seconds`, 'ok');
+      log(`\n🔗 Dashboard: ${location.origin}/`, 'info');
+      toast('Database updated! Deploying...');
+    } else {
+      log(`❌ Push failed: ${result.error || resp.statusText}`, 'err');
+      if (result.detail) log(`Detail: ${result.detail}`, 'err');
+      toast('Push failed — check log', 'err');
+    }
+  } catch (err) {
+    log(`❌ Network error: ${err.message}`, 'err');
+    toast('Network error', 'err');
+  }
+
+  btn.disabled = false;
+}
+
+// ─── Download JSON Backup ───
+function downloadJSON() {
+  if (!processedContacts.length) { toast('No data to download', 'err'); return; }
+  const blob = new Blob([JSON.stringify(processedContacts, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pramogh-contacts-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Downloaded backup JSON');
+}
+</script>
+</body></html>
