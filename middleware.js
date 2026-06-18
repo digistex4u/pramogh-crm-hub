@@ -2,7 +2,7 @@
 // Users login once via /api/auth, then browse freely for 24 hours
 
 export const config = {
-  matcher: ['/((?!api/auth|favicon.ico).*)'],
+  matcher: ['/((?!api/auth|api/sync-freshsales|favicon.ico).*)'],
 };
 
 export default function middleware(request) {
