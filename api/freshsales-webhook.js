@@ -1,75 +1,120 @@
 // Vercel Serverless Function — receives real-time contact pushes from Freshsales workflows
-// Freshsales POSTs contact data here whenever a contact is created/updated
-//
-// Callback URL to use in Freshsales:
-//   https://pramogh-crm-hub.vercel.app/api/freshsales-webhook?key=YOUR_ADMIN_PASSWORD
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-  // Auth check
   const key = req.query.key;
   if (!key || key !== process.env.ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Invalid key' });
   }
 
   const githubToken = process.env.GITHUB_TOKEN;
-  if (!githubToken) {
-    return res.status(500).json({ error: 'GITHUB_TOKEN not set' });
-  }
+  if (!githubToken) return res.status(500).json({ error: 'GITHUB_TOKEN not set' });
 
   const repo = process.env.GITHUB_REPO || 'digistex4u/pramogh-crm-hub';
 
   try {
-    const data = req.body || {};
-    const phone = cleanPhone(
-      data.mobile_number || data.Mobile || data.phone || data.Phone ||
-      data.mobile || data['Mobile Number'] || data['Phone Number'] || ''
-    );
-    if (!phone) {
-      return res.status(400).json({ error: 'No valid phone number in payload', received: Object.keys(data) });
+    const raw = req.body || {};
+
+    // Normalize all keys to lowercase for case-insensitive matching
+    const data = {};
+    for (const [k, v] of Object.entries(raw)) {
+      data[k.toLowerCase().trim()] = v;
     }
-    const contact = { phone };
-    const name = cleanName(
-      data.display_name || data['Display Name'] ||
-      data.name || data.Name ||
-      [data.first_name || data['First Name'] || '', data.last_name || data['Last Name'] || ''].filter(Boolean).join(' ') || ''
+
+    // Log received fields for debugging
+    console.log('Webhook received fields:', Object.keys(raw).join(', '));
+    console.log('Webhook values:', JSON.stringify(raw).slice(0, 500));
+
+    // Find phone - try every possible field name
+    const phone = cleanPhone(
+      data['mobile'] || data['mobile number'] || data['mobile_number'] ||
+      data['contact number'] || data['contact_number'] || data['phone'] ||
+      data['phone number'] || data['phone_number'] || data['whatsapp'] ||
+      data['work number'] || data['work_number'] ||
+      findPhoneInValues(raw) || ''
     );
-    if (name) contact.name = name;
-    else contact.name = 'Unknown';
-    const email = data.email || data.Email || data['Email Address'] || '';
-    if (email) contact.email = email.toLowerCase();
-    const city = data.city || data.City || '';
-    const state = data.state || data.State || '';
+
+    if (!phone) {
+      return res.status(400).json({
+        error: 'No valid phone number found',
+        received_fields: Object.keys(raw),
+        received_data: JSON.stringify(raw).slice(0, 1000)
+      });
+    }
+
+    const contact = { phone };
+
+    // Name
+    const fname = data['first name'] || data['first_name'] || data['firstname'] || '';
+    const lname = data['last name'] || data['last_name'] || data['lastname'] || '';
+    const fullname = data['display name'] || data['display_name'] || data['name'] || data['full name'] || data['full_name'] || '';
+    const name = cleanName(fullname || [fname, lname].filter(Boolean).join(' ') || 'Unknown');
+    contact.name = name;
+
+    // Email
+    const email = data['email'] || data['email id'] || data['email_id'] || data['email address'] || data['email_address'] || '';
+    if (email) contact.email = String(email).toLowerCase();
+
+    // Location
+    const city = data['city'] || data['address.city'] || '';
+    const state = data['state'] || data['address.state'] || '';
     if (city) contact.city = city;
     if (state) contact.state = state;
-    const owner = data.sales_owner || data['Sales Owner'] || data.owner || data.Owner || '';
-    if (owner) contact.sales_owner = owner;
-    const source = data.lead_source || data['Lead Source'] || data.source || data.Source || '';
+
+    // Sales owner
+    const owner = data['sales owner'] || data['sales_owner'] || data['owner'] || data['assigned to'] || '';
+    if (owner) contact.sales_owner = typeof owner === 'object' ? (owner.display_name || owner.name || JSON.stringify(owner)) : owner;
+
+    // Lead source
+    const source = data['lead source'] || data['lead_source'] || data['source'] || '';
     if (source) contact.source = source;
-    const stage = data.lifecycle_stage || data['Lifecycle Stage'] || data.stage || data.Stage ||
-                  data.lead_stage || data['Lead Stage'] || '';
+
+    // Stage
+    const stage = data['lifecycle stage'] || data['lifecycle_stage'] || data['stage'] || data['lead stage'] || data['lead_stage'] || data['status'] || '';
     if (stage) contact.stage = stage;
-    const gemstone = data.cf_gemstone || data.Gemstone || data['Gemstone Interest'] ||
-                     data.cf_gemstone_interest || data.cf_product || data.Product || '';
-    if (gemstone) contact.gemstone = gemstone;
-    const lostReason = data.cf_lost_reason || data['Lost Reason'] || data.cf_reason_lost || '';
-    if (lostReason) contact.lost_reason = lostReason;
-    const tags = data.cf_tags || data.Tags || data.tags || '';
-    if (tags) contact.tags = tags;
-    const dealValue = data.cf_deal_value || data['Deal Value'] || data.cf_amount || '';
-    if (dealValue) contact.deal_value = parseFloat(dealValue) || 0;
+
+    // Custom fields
+    for (const [k, v] of Object.entries(data)) {
+      if (!v || v === '') continue;
+      const lk = k.toLowerCase();
+      if (lk.includes('gemstone') || lk.includes('gem type') || lk.includes('product interest'))
+        contact.gemstone = v;
+      if (lk.includes('lost reason') || lk.includes('lost_reason') || lk.includes('reason_lost'))
+        contact.lost_reason = v;
+      if (lk.includes('tag')) contact.tags = v;
+      if (lk.includes('deal value') || lk.includes('deal_value') || lk.includes('amount'))
+        contact.deal_value = parseFloat(v) || 0;
+    }
+
     contact.updated_at = new Date().toISOString();
-    if (data.id || data.Id) contact.fs_id = data.id || data.Id;
+    const fsId = data['id'] || data['contact id'] || data['contact_id'] || '';
+    if (fsId) contact.fs_id = fsId;
+
     const result = await mergeAndPush(contact, repo, githubToken);
+
     return res.status(200).json({
       success: true, phone: contact.phone, name: contact.name,
       action: result.action, total: result.total, commit: result.sha,
     });
   } catch (err) {
+    console.error('Webhook error:', err.message);
     return res.status(500).json({ error: err.message });
   }
+}
+
+// Scan all values for anything that looks like an Indian phone number
+function findPhoneInValues(obj) {
+  for (const v of Object.values(obj)) {
+    if (!v) continue;
+    const cleaned = String(v).replace(/[^0-9+]/g, '');
+    if (cleaned.length >= 10 && cleaned.length <= 13) {
+      const phone = cleanPhone(cleaned);
+      if (phone) return phone;
+    }
+  }
+  return '';
 }
 
 async function mergeAndPush(contact, repo, token, retries = 3) {
@@ -91,7 +136,7 @@ async function mergeAndPush(contact, repo, token, retries = 3) {
       const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
       const match = content.match(/window\.PRAMOGH_CONTACTS\s*=\s*(\[[\s\S]*\])\s*;?/);
       if (match) {
-        try { existingContacts = JSON.parse(match[1]); } catch (e) { /* start fresh */ }
+        try { existingContacts = JSON.parse(match[1]); } catch (e) { }
       }
     }
     const contactMap = new Map();
@@ -102,8 +147,8 @@ async function mergeAndPush(contact, repo, token, retries = 3) {
     if (contactMap.has(contact.phone)) {
       const existing = contactMap.get(contact.phone);
       const merged = { ...existing };
-      for (const [key, val] of Object.entries(contact)) {
-        if (val !== undefined && val !== '' && val !== null) merged[key] = val;
+      for (const [k, v] of Object.entries(contact)) {
+        if (v !== undefined && v !== '' && v !== null) merged[k] = v;
       }
       contactMap.set(contact.phone, merged);
       action = 'updated';
@@ -111,22 +156,14 @@ async function mergeAndPush(contact, repo, token, retries = 3) {
       contactMap.set(contact.phone, contact);
     }
     const finalContacts = Array.from(contactMap.values());
-    const jsContent = [
-      '// Pramogh CRM Contacts Database',
-      `// Webhook update: ${new Date().toISOString()}`,
-      `// ${finalContacts.length.toLocaleString()} unique contacts`,
-      `window.PRAMOGH_CONTACTS = ${JSON.stringify(finalContacts)};`,
-      ''
-    ].join('\n');
+    const jsContent = '// Pramogh CRM Contacts Database\n// Webhook update: ' + new Date().toISOString() + '\n// ' + finalContacts.length + ' unique contacts\nwindow.PRAMOGH_CONTACTS = ' + JSON.stringify(finalContacts) + ';\n';
     const putBody = {
-      message: `Webhook: ${action} ${contact.phone} (${contact.name})`,
+      message: 'Webhook: ' + action + ' ' + contact.phone + ' (' + contact.name + ')',
       content: Buffer.from(jsContent).toString('base64'),
       branch: 'main',
     };
     if (sha) putBody.sha = sha;
-    const putResp = await fetch(apiUrl, {
-      method: 'PUT', headers, body: JSON.stringify(putBody),
-    });
+    const putResp = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(putBody) });
     if (putResp.ok) {
       const result = await putResp.json();
       return { action, total: finalContacts.length, sha: result.content?.sha?.slice(0, 7) };
@@ -136,7 +173,7 @@ async function mergeAndPush(contact, repo, token, retries = 3) {
       continue;
     }
     const err = await putResp.text();
-    throw new Error(`GitHub push failed: ${putResp.status} ${err.slice(0, 200)}`);
+    throw new Error('GitHub push failed: ' + putResp.status + ' ' + err.slice(0, 200));
   }
 }
 
@@ -151,7 +188,7 @@ function cleanPhone(raw) {
 }
 
 function cleanName(raw) {
-  if (!raw) return '';
+  if (!raw) return 'Unknown';
   return String(raw).replace(/[`'"]/g, '').replace(/\s+/g, ' ').trim()
-    .split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    .split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') || 'Unknown';
 }
