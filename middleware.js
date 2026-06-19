@@ -2,7 +2,7 @@
 // Users login once via /api/auth, then browse freely for 24 hours
 
 export const config = {
-  matcher: ['/((?!api/auth|api/sync-freshsales|favicon.ico).*)'],
+  matcher: ['/((?!api/auth|api/freshsales-webhook|api/sync-freshsales|api/update-db|favicon.ico).*)'],
 };
 
 export default function middleware(request) {
@@ -72,7 +72,7 @@ button{width:100%;padding:12px;background:#c9a44c;color:#000;border:none;border-
 button:hover{background:#e8c868}
 .err{color:#ef4444;font-size:12px;margin-top:8px;display:none}
 .foot{margin-top:24px;font-size:10px;color:#5a5a70}
-</style></head><body>
+<\/style><\/head><body>
 <div class="card">
 <div class="gem">💎</div>
 <h1>PRAMOGH</h1>
@@ -80,7 +80,7 @@ button:hover{background:#e8c868}
 <input id="pw" type="password" placeholder="Enter site password" onkeydown="if(event.key==='Enter')login()"/>
 <button onclick="login()">🔓 Login</button>
 <p class="err" id="err"></p>
-<p class="foot">🔒 Protected deployment · API keys secured server-side</p>
+<p class="foot">🔒 Protected deployment \u00B7 API keys secured server-side</p>
 </div>
 <script>
 async function login(){
@@ -90,5 +90,5 @@ async function login(){
   if(r.ok){location.reload();}
   else{const e=document.getElementById('err');e.textContent='Wrong password';e.style.display='block';}
 }
-</script></body></html>`;
+<\/script><\/body><\/html>`;
 }
