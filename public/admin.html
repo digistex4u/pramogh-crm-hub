@@ -478,41 +478,90 @@ async function pushToGitHub() {
   btn.disabled = true;
   document.getElementById('pushLog').innerHTML = '';
 
-  log('Preparing contacts data...', 'wait');
-
-  // Generate contacts.js content
-  const jsContent = `// Pramogh CRM Contacts Database\n// Auto-generated on ${new Date().toISOString()}\n// ${processedContacts.length.toLocaleString()} unique contacts\nwindow.PRAMOGH_CONTACTS = ${JSON.stringify(processedContacts)};\n`;
-
-  log(`Generated contacts.js — ${(jsContent.length / 1024).toFixed(0)} KB, ${processedContacts.length.toLocaleString()} contacts`, 'ok');
-  log('Pushing to GitHub via API...', 'wait');
+  log('Authenticating...', 'wait');
 
   try {
-    const resp = await fetch('/api/update-db', {
+    // Step 1: Authenticate and get GitHub config (no data sent — stays under body limit)
+    const authResp = await fetch('/api/update-db', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        adminPassword: pw,
-        contacts: jsContent,
-        contactCount: processedContacts.length,
-      }),
+      body: JSON.stringify({ adminPassword: pw }),
     });
 
-    const result = await resp.json();
+    if (!authResp.ok) {
+      const err = await authResp.json().catch(() => ({}));
+      log(`❌ Auth failed: ${err.error || authResp.statusText}`, 'err');
+      toast('Auth failed', 'err');
+      btn.disabled = false;
+      return;
+    }
 
-    if (resp.ok) {
+    const config = await authResp.json();
+    if (!config.authenticated || !config.token) {
+      log('❌ Auth response missing token', 'err');
+      btn.disabled = false;
+      return;
+    }
+    log('✅ Authenticated', 'ok');
+
+    // Step 2: Generate contacts.js content
+    log('Preparing contacts data...', 'wait');
+    const jsContent = `// Pramogh CRM Contacts Database\n// Auto-generated on ${new Date().toISOString()}\n// ${processedContacts.length.toLocaleString()} unique contacts\nwindow.PRAMOGH_CONTACTS = ${JSON.stringify(processedContacts)};\n`;
+
+    log(`Generated contacts.js — ${(jsContent.length / 1024).toFixed(0)} KB, ${processedContacts.length.toLocaleString()} contacts`, 'ok');
+
+    // Step 3: Base64 encode in browser
+    log('Encoding for GitHub (this may take a moment)...', 'wait');
+    // Use TextEncoder + manual base64 for large files
+    const bytes = new TextEncoder().encode(jsContent);
+    let binary = '';
+    const chunkSize = 32768;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, bytes.slice(i, i + chunkSize));
+    }
+    const b64 = btoa(binary);
+    log(`Encoded to ${(b64.length / 1048576).toFixed(1)} MB base64`, 'ok');
+
+    // Step 4: Push directly to GitHub API (no Vercel body limit)
+    log('Pushing to GitHub directly...', 'wait');
+    const apiUrl = `https://api.github.com/repos/${config.repo}/contents/${config.filePath}`;
+    const putBody = {
+      message: `Update CRM contacts — ${processedContacts.length.toLocaleString()} contacts [admin push]`,
+      content: b64,
+      branch: 'main',
+    };
+    if (config.sha) putBody.sha = config.sha;
+
+    const putResp = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${config.token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'pramogh-crm-hub-admin',
+      },
+      body: JSON.stringify(putBody),
+    });
+
+    if (putResp.ok) {
+      const result = await putResp.json();
       log(`✅ Pushed to GitHub successfully!`, 'ok');
-      log(`Commit: ${result.sha?.slice(0, 7) || 'ok'}`, 'ok');
+      log(`Commit: ${result.content?.sha?.slice(0, 7) || 'ok'}`, 'ok');
       log(`Vercel auto-deploy triggered — site updates in ~45 seconds`, 'ok');
       log(`\n🔗 Dashboard: ${location.origin}/`, 'info');
       toast('Database updated! Deploying...');
     } else {
-      log(`❌ Push failed: ${result.error || resp.statusText}`, 'err');
-      if (result.detail) log(`Detail: ${result.detail}`, 'err');
+      const errText = await putResp.text();
+      let reason = `HTTP ${putResp.status}`;
+      try { const ej = JSON.parse(errText); reason = ej.message || reason; } catch(e) {}
+      log(`❌ GitHub push failed: ${reason}`, 'err');
+      if (putResp.status === 409) log('Hint: File was modified by webhook since page load. Try again — it will get fresh SHA.', 'info');
       toast('Push failed — check log', 'err');
     }
+
   } catch (err) {
-    log(`❌ Network error: ${err.message}`, 'err');
-    toast('Network error', 'err');
+    log(`❌ Error: ${err.message}`, 'err');
+    toast('Error — check log', 'err');
   }
 
   btn.disabled = false;
