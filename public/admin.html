@@ -235,29 +235,7 @@ function toast(msg, type = 'ok') {
 }
 
 // ─── CSV Parser ───
-function parseCSV(text) {
-  const lines = [];
-  let current = '';
-  let inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '"') {
-      if (inQuotes && text[i + 1] === '"') { current += '"'; i++; }
-      else inQuotes = !inQuotes;
-    } else if ((ch === ',' || ch === '\t') && !inQuotes) {
-      lines.push(current); current = '';
-      if (ch === '\t') lines._isTSV = true;
-    } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
-      if (current || lines.length) { lines.push(current); current = ''; }
-      if (lines.length) yield lines.splice(0);
-      if (ch === '\r' && text[i + 1] === '\n') i++;
-    } else {
-      current += ch;
-    }
-  }
-  if (current || lines.length) { lines.push(current); yield lines.splice(0); }
-}
-
+// CSV parser (generator)
 function* parseCSVGen(text) {
   const rows = [];
   let row = [];
