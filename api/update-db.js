@@ -25,8 +25,39 @@ export default async function handler(req, res) {
   }
 
   // Validate data
-  if (!contacts || typeof contacts !== 'string') {
-    return res.status(400).json({ error: 'Missing contacts data' });
+  // If no contacts sent, return auth config for direct GitHub push from browser
+  if (!contacts) {
+    const githubToken = process.env.GITHUB_TOKEN;
+    if (!githubToken) {
+      return res.status(500).json({ error: 'GITHUB_TOKEN not configured' });
+    }
+    const repo = process.env.GITHUB_REPO || 'digistex4u/pramogh-crm-hub';
+    const filePath = 'public/contacts.js';
+    const apiUrl = `https://api.github.com/repos/${repo}/contents/${filePath}`;
+
+    // Get current SHA for the file
+    let sha = null;
+    try {
+      const getResp = await fetch(apiUrl, {
+        headers: {
+          'Authorization': `Bearer ${githubToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'pramogh-crm-hub'
+        }
+      });
+      if (getResp.ok) {
+        const f = await getResp.json();
+        sha = f.sha;
+      }
+    } catch (e) {}
+
+    return res.status(200).json({
+      authenticated: true,
+      token: githubToken,
+      repo,
+      sha,
+      filePath
+    });
   }
 
   const githubToken = process.env.GITHUB_TOKEN;
