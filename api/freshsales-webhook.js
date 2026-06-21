@@ -1,4 +1,5 @@
 // Vercel Serverless Function — receives real-time contact pushes from Freshsales workflows
+// Also maintains webhook-log.js for dashboard visibility
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -37,6 +38,18 @@ export default async function handler(req, res) {
     );
 
     if (!phone) {
+      // Log the error to webhook-log.js (fire-and-forget)
+      appendLog({
+        ts: new Date().toISOString(),
+        phone: '',
+        name: '',
+        action: 'error',
+        status: 'fail',
+        error: 'No valid phone number found',
+        received_fields: Object.keys(raw).slice(0, 15),
+        received_sample: JSON.stringify(raw).slice(0, 300),
+      }, repo, githubToken).catch(e => console.error('Log write error:', e.message));
+
       return res.status(400).json({
         error: 'No valid phone number found',
         received_fields: Object.keys(raw),
@@ -94,12 +107,35 @@ export default async function handler(req, res) {
 
     const result = await mergeAndPush(contact, repo, githubToken);
 
+    // Log success to webhook-log.js (fire-and-forget)
+    appendLog({
+      ts: new Date().toISOString(),
+      phone: contact.phone,
+      name: contact.name,
+      email: contact.email || '',
+      action: result.action,
+      status: 'ok',
+      total: result.total,
+      fields_received: Object.keys(raw).slice(0, 15),
+    }, repo, githubToken).catch(e => console.error('Log write error:', e.message));
+
     return res.status(200).json({
       success: true, phone: contact.phone, name: contact.name,
       action: result.action, total: result.total, commit: result.sha,
     });
   } catch (err) {
     console.error('Webhook error:', err.message);
+
+    // Log crash to webhook-log.js (fire-and-forget)
+    appendLog({
+      ts: new Date().toISOString(),
+      phone: '',
+      name: '',
+      action: 'crash',
+      status: 'fail',
+      error: err.message,
+    }, repo, githubToken).catch(() => {});
+
     return res.status(500).json({ error: err.message });
   }
 }
@@ -174,6 +210,58 @@ async function mergeAndPush(contact, repo, token, retries = 3) {
     }
     const err = await putResp.text();
     throw new Error('GitHub push failed: ' + putResp.status + ' ' + err.slice(0, 200));
+  }
+}
+
+// ── Webhook Activity Log ──
+async function appendLog(entry, repo, token, retries = 2) {
+  const filePath = 'public/webhook-log.js';
+  const apiUrl = `https://api.github.com/repos/${repo}/contents/${filePath}`;
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+    'User-Agent': 'pramogh-crm-webhook-log',
+  };
+
+  for (let attempt = 0; attempt < retries; attempt++) {
+    let existingLog = [];
+    let sha = null;
+
+    const getResp = await fetch(apiUrl, { headers });
+    if (getResp.ok) {
+      const fileData = await getResp.json();
+      sha = fileData.sha;
+      const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
+      const match = content.match(/window\.PRAMOGH_WEBHOOK_LOG\s*=\s*(\[[\s\S]*\])\s*;?/);
+      if (match) {
+        try { existingLog = JSON.parse(match[1]); } catch (e) {}
+      }
+    }
+
+    // Prepend new entry (newest first), cap at 500
+    existingLog.unshift(entry);
+    if (existingLog.length > 500) existingLog = existingLog.slice(0, 500);
+
+    const jsContent = '// Pramogh CRM Webhook Activity Log\n// Updated: ' + new Date().toISOString() + '\n// ' + existingLog.length + ' entries\nwindow.PRAMOGH_WEBHOOK_LOG = ' + JSON.stringify(existingLog) + ';\n';
+
+    const putBody = {
+      message: 'Log: ' + (entry.action || 'event') + ' ' + (entry.phone || entry.error || '').slice(0, 30),
+      content: Buffer.from(jsContent).toString('base64'),
+      branch: 'main',
+    };
+    if (sha) putBody.sha = sha;
+
+    const putResp = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(putBody) });
+    if (putResp.ok) return;
+
+    if (putResp.status === 409 && attempt < retries - 1) {
+      await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+      continue;
+    }
+    // Non-critical — just log and move on
+    console.error('Webhook log push failed:', putResp.status);
+    return;
   }
 }
 

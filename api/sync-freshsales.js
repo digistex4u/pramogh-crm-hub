@@ -287,6 +287,12 @@ export default async function handler(req, res) {
       log.push(`${ts()} ✅ Pushed to GitHub. Commit: ${result.content?.sha?.slice(0, 7)}`);
       log.push(`${ts()} Vercel auto-deploys in ~45s`);
 
+      // Log sync to webhook-log.js (fire-and-forget)
+      appendSyncLog({
+        ts: now.toISOString(), action: 'sync', status: 'ok',
+        new: newCount, updated: updateCount, total: finalContacts.length, window_min: 65,
+      }, repo, githubToken).catch(e => console.error('Sync log error:', e.message));
+
       return res.status(200).json({
         success: true,
         synced: mappedContacts.length,
@@ -299,12 +305,68 @@ export default async function handler(req, res) {
     } else {
       const err = await putResp.text();
       log.push(`${ts()} ❌ GitHub push failed: ${putResp.status} ${err.slice(0, 300)}`);
+      appendSyncLog({
+        ts: now.toISOString(), action: 'sync', status: 'fail',
+        error: `GitHub push: ${putResp.status}`,
+      }, repo, githubToken).catch(() => {});
       return res.status(500).json({ error: 'GitHub push failed', log });
     }
 
   } catch (err) {
     log.push(`${ts()} ❌ Fatal error: ${err.message}`);
+    appendSyncLog({
+      ts: new Date().toISOString(), action: 'sync', status: 'fail', error: err.message,
+    }, repo, githubToken).catch(() => {});
     return res.status(500).json({ error: err.message, log });
+  }
+}
+
+// ── Sync Log (fire-and-forget) ──
+
+async function appendSyncLog(entry, repo, token) {
+  const filePath = 'public/webhook-log.js';
+  const apiUrl = `https://api.github.com/repos/${repo}/contents/${filePath}`;
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+    'User-Agent': 'pramogh-crm-sync-log',
+  };
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let existingLog = [];
+    let sha = null;
+
+    const getResp = await fetch(apiUrl, { headers });
+    if (getResp.ok) {
+      const fileData = await getResp.json();
+      sha = fileData.sha;
+      const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
+      const match = content.match(/window\.PRAMOGH_WEBHOOK_LOG\s*=\s*(\[[\s\S]*\])\s*;?/);
+      if (match) {
+        try { existingLog = JSON.parse(match[1]); } catch (e) {}
+      }
+    }
+
+    existingLog.unshift(entry);
+    if (existingLog.length > 500) existingLog = existingLog.slice(0, 500);
+
+    const jsContent = '// Pramogh CRM Webhook Activity Log\n// Updated: ' + new Date().toISOString() + '\n// ' + existingLog.length + ' entries\nwindow.PRAMOGH_WEBHOOK_LOG = ' + JSON.stringify(existingLog) + ';\n';
+
+    const putBody = {
+      message: 'Log: sync ' + (entry.status === 'ok' ? `+${entry.new} ~${entry.updated}` : 'failed'),
+      content: Buffer.from(jsContent).toString('base64'),
+      branch: 'main',
+    };
+    if (sha) putBody.sha = sha;
+
+    const putResp = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(putBody) });
+    if (putResp.ok) return;
+    if (putResp.status === 409 && attempt < 1) {
+      await new Promise(r => setTimeout(r, 500));
+      continue;
+    }
+    return;
   }
 }
 
