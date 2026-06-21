@@ -127,6 +127,61 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t);min-heig
 .spin{width:44px;height:44px;border:3px solid var(--b);border-top-color:var(--a);border-radius:50%;animation:sp .8s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media(max-width:768px){.hdr{padding:14px}.hdr-in{flex-direction:column}.mn{padding:14px 14px 40px}.tb{padding:12px 14px 0}.ta{padding:8px 14px;font-size:12px}.sb .c{font-size:24px}}
+
+/* ── Search ── */
+.srch-box{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.srch-box input{flex:1;min-width:240px;background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:10px 16px;color:var(--t);font-size:14px;outline:none;font-family:'Inter',sans-serif}
+.srch-box input:focus{border-color:var(--a)}
+.srch-box input::placeholder{color:var(--t3)}
+.srch-res{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.srch-card{background:var(--s);border:1px solid var(--b);border-radius:12px;padding:16px;cursor:pointer;transition:all .2s}
+.srch-card:hover{border-color:var(--a);transform:translateY(-2px);box-shadow:0 4px 20px rgba(201,164,76,0.1)}
+.srch-card .sc-name{font-size:15px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.srch-card .sc-phone{font-size:12px;color:var(--a);font-family:'SF Mono',Consolas,monospace}
+.srch-card .sc-meta{font-size:11px;color:var(--t2);margin-top:6px;display:flex;flex-wrap:wrap;gap:8px}
+.srch-card .sc-tag{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:rgba(201,164,76,0.12);color:var(--a2)}
+.srch-empty{text-align:center;padding:60px 20px;color:var(--t3)}
+.srch-empty .se-icon{font-size:48px;margin-bottom:12px}
+.srch-stats{font-size:12px;color:var(--t2);margin-bottom:16px;display:flex;gap:16px;flex-wrap:wrap}
+
+/* ── Profile Modal ── */
+.prof-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.prof-card{background:var(--bg);border:1px solid var(--b);border-radius:16px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;animation:profIn .25s ease}
+@keyframes profIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+.prof-hdr{padding:24px 24px 16px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:16px}
+.prof-avatar{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;flex-shrink:0}
+.prof-hdr h3{font-family:'Playfair Display',serif;font-size:20px;line-height:1.2}
+.prof-hdr .prof-phone{font-size:13px;color:var(--a);font-family:'SF Mono',Consolas,monospace;margin-top:2px}
+.prof-close{margin-left:auto;width:32px;height:32px;border-radius:8px;border:1px solid var(--b);background:0;color:var(--t2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.prof-close:hover{border-color:var(--red);color:var(--red)}
+.prof-body{padding:20px 24px}
+.prof-section{margin-bottom:20px}
+.prof-section h4{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--t3);margin-bottom:10px}
+.prof-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--b)}
+.prof-row:last-child{border-bottom:0}
+.prof-label{font-size:12px;color:var(--t2);width:120px;flex-shrink:0}
+.prof-val{font-size:13px;font-weight:500;word-break:break-all}
+.prof-tags{display:flex;flex-wrap:wrap;gap:6px}
+.prof-tag{padding:3px 10px;border-radius:10px;font-size:11px;font-weight:600}
+.prof-actions{padding:16px 24px;border-top:1px solid var(--b);display:flex;gap:8px}
+
+/* ── Webhook Log ── */
+.wlog-stats{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.wlog-stat{background:var(--s);border:1px solid var(--b);border-radius:10px;padding:12px 20px;text-align:center;min-width:120px}
+.wlog-stat .ws-num{font-size:24px;font-weight:700;font-family:'Playfair Display',serif}
+.wlog-stat .ws-label{font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.wlog-table{width:100%;border-collapse:collapse;font-size:12px}
+.wlog-table th{text-align:left;font-size:10px;color:var(--t2);padding:10px 12px;border-bottom:1px solid var(--b);text-transform:uppercase;letter-spacing:1px;position:sticky;top:0;background:var(--bg);z-index:2}
+.wlog-table td{padding:8px 12px;border-bottom:1px solid var(--b);vertical-align:top}
+.wlog-table tr:hover td{background:var(--s)}
+.wlog-table .wl-ts{font-size:10px;color:var(--t3);white-space:nowrap}
+.wlog-table .wl-action{font-weight:600}
+.wlog-ok{color:var(--grn)}.wlog-fail{color:var(--red)}.wlog-sync{color:var(--blu)}
+.wlog-err{font-size:10px;color:var(--red);max-width:300px;word-break:break-word;margin-top:2px}
+.wlog-fields{font-size:10px;color:var(--t3);max-width:250px;word-break:break-word}
+.wlog-wrap{max-height:70vh;overflow-y:auto;border:1px solid var(--b);border-radius:12px}
+.wlog-refresh{font-size:11px;color:var(--a);cursor:pointer;padding:4px 12px;border:1px solid var(--a);border-radius:20px;background:0;transition:all .2s}
+.wlog-refresh:hover{background:var(--a);color:var(--bg)}
 </style>
 </head>
 <body>
@@ -141,13 +196,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t);min-heig
 <div class="ta" onclick="sT('lists')">📋 Lists</div>
 <div class="ta" onclick="sT('manual')">✏️ Create</div>
 <div class="ta" onclick="sT('wati')">💬 WhatsApp</div>
+<div class="ta" onclick="sT('search')">🔍 Search</div>
+<div class="ta" onclick="sT('webhooklog')">📡 Sync Log</div>
 <div class="ta" onclick="sT('history')">📜 Log</div>
 </div>
 <div class="mn">
 <div class="pn on" id="p-filter">
 <div id="aBar" class="ab"></div>
 <div class="sr"><input id="slN" placeholder="Enter list name to save filtered contacts…"/><button class="btn bg" onclick="sFL()">💾 Save List</button><button class="btn bo bs" onclick="exL()">⬇ Export</button><label class="btn bo bs">⬆ Import<input type="file" accept=".json" onchange="imL(event)" style="display:none"/></label></div>
-<div id="fC"><div class="ld"><div class="spin"></div><div style="color:var(--t2);font-size:13px">Parsing 64,497 contacts…</div></div></div>
+<div id="fC"><div class="ld"><div class="spin"></div><div style="color:var(--t2);font-size:13px">Loading contacts…</div></div></div>
 <div class="bd" id="bdA"></div>
 </div>
 <div class="pn" id="p-lists">
@@ -186,6 +243,22 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t);min-heig
 <span id="sSt" style="font-size:12px;color:var(--t2)"></span>
 </div><div class="pb"><div class="pf" id="pF"></div></div><div class="lb" id="logB"></div>
 </div></div>
+<div class="pn" id="p-search">
+<h2 style="font-family:'Playfair Display',serif;font-size:20px;margin-bottom:4px">🔍 Contact Lookup</h2>
+<p style="font-size:12px;color:var(--t2);margin-bottom:16px">Search by phone number or email to view full contact profile.</p>
+<div class="srch-box"><input id="srchInput" placeholder="Enter phone number or email…" oninput="doSearch()" onkeydown="if(event.key==='Enter')doSearch()"/></div>
+<div class="srch-stats" id="srchStats"></div>
+<div id="srchResults"><div class="srch-empty"><div class="se-icon">🔍</div><p>Type a phone number or email to search</p></div></div>
+</div>
+<div class="pn" id="p-webhooklog">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:10px">
+<h2 style="font-family:'Playfair Display',serif;font-size:20px">📡 Webhook & Sync Activity</h2>
+<button class="wlog-refresh" onclick="loadWLog()">↻ Refresh</button>
+</div>
+<p style="font-size:12px;color:var(--t2);margin-bottom:16px">Real-time log of contacts pushed via Freshsales webhook and hourly sync. Errors shown with diagnostic fields.</p>
+<div class="wlog-stats" id="wlogStats"></div>
+<div class="wlog-wrap" id="wlogWrap"><p style="color:var(--t3);font-size:13px;padding:20px">Loading webhook log…</p></div>
+</div>
 <div class="pn" id="p-history">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
 <h2 style="font-family:'Playfair Display',serif;font-size:20px">📜 Broadcast History</h2>
@@ -194,6 +267,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t);min-heig
 </div>
 </div>
 <div class="tst" id="tst"></div>
+<div class="prof-overlay" id="profOverlay" style="display:none" onclick="if(event.target===this)closeProf()"></div>
+<script src="contacts.js"></script>
+<script src="webhook-log.js"></script>
 <script>
 const PRODUCTS=["7 Chakra Rakhi", "Agate", "Amethyst", "Amethyst Bracelet", "Aquamarine", "Bi-Color Sapphire", "Black-Star", "Blood Stone", "Blue Moonstone", "Blue Zircon", "Blue sapphire", "Burmese Ruby", "Catseye", "Citrine", "Citrine Bracelet", "Colombian Emerald", "Crystal Quartz", "Diamond", "Emerald", "Green Aventurine Bracelet", "Hematite", "Hessonite", "Iolite", "Irani Firoza", "Jade", "Keshi Pearl", "Labrodorite", "Lapiz Lazuli", "Malachite", "Mix Gemstones", "Moonstone", "Onyx", "Opal", "Pearl", "Pearl - Black", "Pearl - Golden", "Peridot", "Purple Sapphire", "Pyrite", "Pyrite Bracelet", "Rainbow Moonstone", "Red coral", "Rose Quartz", "Ruby", "Rudraksh", "Star Ruby", "Sulemani Haqeeq", "Sulemani Haqeeq Bracelet", "Sulemani Haqeeq Malla", "Sun Stone", "Tiger-Eye", "Topaz", "Tourmaline", "Turquoise", "White Coral", "White Moonstone Bracelet", "White Sapphire", "Yellow Sapphire", "Yemeni Haqeeq", "Zambian Emerald", "Zircon"];
 const STATUSES=["CNC", "Connected - Interested", "Converted", "Hold", "Hot Leads", "Lead Lost", "Lost", "New", "Nurture 15D", "Nurture 1M", "Nurture 7D", "Nurture LT", "Shared Catalogue"];
@@ -193699,10 +193775,51 @@ Unknown`;
 let C=[],PH=[],NM=[];
 let sP=new Set(),sS=new Set(),sO=new Set(),sL=new Set();
 let lists={},channels={},hist=[],mE=[],sending=false,selLK=null;
+let contactProfiles=new Map(),EM=[];
 
-function parse(){const ln=RD.split("\n");C=new Array(ln.length);for(let i=0;i<ln.length;i++){const p=ln[i].split("|");C[i]=[p[0]?p[0].split(".").map(Number):[],p[1]?p[1].split(".").map(Number):[],p[2]?p[2].split(".").map(Number):[],p[3]?p[3].split(".").map(Number):[]];}PH=RP.split("\n");NM=RN.split("\n");}
+function parse(){
+const ln=RD.split("\n");C=new Array(ln.length);for(let i=0;i<ln.length;i++){const p=ln[i].split("|");C[i]=[p[0]?p[0].split(".").map(Number):[],p[1]?p[1].split(".").map(Number):[],p[2]?p[2].split(".").map(Number):[],p[3]?p[3].split(".").map(Number):[]];}
+PH=RP.split("\n");NM=RN.split("\n");EM=new Array(PH.length).fill('');
+// Build base profile index for embedded contacts
+for(let i=0;i<PH.length;i++){
+const prof={phone:PH[i],name:NM[i],_idx:i,_src:'embedded'};
+const ci=C[i];
+if(ci[0].length)prof.gemstone=ci[0].map(j=>PRODUCTS[j]).join(', ');
+if(ci[1].length)prof.stage=ci[1].map(j=>STATUSES[j]).join(', ');
+if(ci[2].length)prof.sales_owner=ci[2].map(j=>OWNERS[j]).join(', ');
+if(ci[3].length)prof.lost_reason=ci[3].map(j=>LOST_REASONS[j]).join(', ');
+contactProfiles.set(PH[i],prof);
+}
+// Merge contacts.js (webhook/sync contacts)
+if(window.PRAMOGH_CONTACTS&&Array.isArray(window.PRAMOGH_CONTACTS)){
+const existPH=new Set(PH);
+let added=0;
+for(const wc of window.PRAMOGH_CONTACTS){
+if(!wc.phone)continue;
+if(existPH.has(wc.phone)){
+// Augment existing profile with webhook data (email, city etc)
+const ep=contactProfiles.get(wc.phone);
+if(ep){for(const[k,v] of Object.entries(wc)){if(v&&v!==''){ep[k]=v;}}ep._src='merged';}
+// Store email for search
+const idx=PH.indexOf(wc.phone);
+if(idx>=0&&wc.email)EM[idx]=wc.email.toLowerCase();
+} else {
+// Brand new contact from webhook — add to arrays
+const nIdx=C.length;
+C.push([[],[],[],[]]);
+PH.push(wc.phone);
+NM.push(wc.name||'Unknown');
+EM.push((wc.email||'').toLowerCase());
+const prof={...wc,_idx:nIdx,_src:'webhook'};
+contactProfiles.set(wc.phone,prof);
+added++;
+}
+}
+if(added)console.log('Merged '+added+' new contacts from webhook/sync');
+}
+}
 
-function sT(id){const tabs=['filter','lists','manual','wati','history'];document.querySelectorAll('.ta').forEach((t,i)=>t.classList.toggle('on',tabs[i]===id));document.querySelectorAll('.pn').forEach(p=>p.classList.remove('on'));document.getElementById('p-'+id).classList.add('on');if(id==='lists')rL();if(id==='wati'){pWS();loadChannels();}if(id==='history')rH();}
+function sT(id){const tabs=['filter','lists','manual','wati','search','webhooklog','history'];document.querySelectorAll('.ta').forEach((t,i)=>t.classList.toggle('on',tabs[i]===id));document.querySelectorAll('.pn').forEach(p=>p.classList.remove('on'));document.getElementById('p-'+id).classList.add('on');if(id==='lists')rL();if(id==='wati'){pWS();loadChannels();}if(id==='history')rH();if(id==='webhooklog')loadWLog();if(id==='search')document.getElementById('srchInput').focus();}
 
 function toast(m,tp='ok'){const t=document.getElementById('tst');t.textContent=m;t.className='tst sh '+tp;setTimeout(()=>t.classList.remove('sh'),3000);}
 
@@ -193839,6 +193956,164 @@ async function init(){
   if(selLK&&lists[selLK]){aC(document.getElementById('lc2'),lists[selLK].contacts.length);document.getElementById('ln2').textContent=lists[selLK].name;}
   upd();
 }
+
+// ═══════════════════════════════════════════════════════
+// SEARCH + PROFILE CARD
+// ═══════════════════════════════════════════════════════
+
+function doSearch(){
+const q=(document.getElementById('srchInput').value||'').trim().toLowerCase().replace(/[^a-z0-9@._+\- ]/g,'');
+const el=document.getElementById('srchResults');
+const st=document.getElementById('srchStats');
+if(q.length<3){el.innerHTML='<div class="srch-empty"><div class="se-icon">🔍</div><p>Type at least 3 characters to search</p></div>';st.innerHTML='';return;}
+const isEmail=q.includes('@');
+const phoneQ=q.replace(/[^0-9]/g,'');
+const results=[];
+for(let i=0;i<PH.length;i++){
+if(results.length>=50)break;
+let match=false;
+if(isEmail){
+const em=EM[i]||'';
+if(em&&em.includes(q))match=true;
+} else if(phoneQ.length>=3){
+if(PH[i].includes(phoneQ))match=true;
+}
+if(!match&&!isEmail){
+const nm=(NM[i]||'').toLowerCase();
+if(nm.includes(q))match=true;
+}
+if(match)results.push(i);
+}
+const totalSearch=contactProfiles.size;
+const withEmail=EM.filter(e=>e).length;
+st.innerHTML=`<span>📊 ${totalSearch.toLocaleString()} total contacts</span><span>📧 ${withEmail.toLocaleString()} with email</span><span>🔎 ${results.length} results</span>`;
+if(!results.length){el.innerHTML='<div class="srch-empty"><div class="se-icon">😕</div><p>No contacts match "'+q.replace(/</g,'&lt;')+'"</p></div>';return;}
+let h='<div class="srch-res">';
+for(const idx of results){
+const ph=PH[idx],nm=NM[idx]||'Unknown',em=EM[idx]||'';
+const prof=contactProfiles.get(ph)||{};
+let tags='';
+if(prof.gemstone)tags+=`<span class="sc-tag">💎 ${(prof.gemstone+'').slice(0,25)}</span>`;
+if(prof.stage)tags+=`<span class="sc-tag">${(prof.stage+'').slice(0,20)}</span>`;
+if(prof._src==='webhook')tags+=`<span class="sc-tag" style="background:rgba(37,211,102,0.15);color:var(--w)">webhook</span>`;
+h+=`<div class="srch-card" onclick="showProf('${ph}')">
+<div class="sc-name">${nm.replace(/</g,'&lt;')}</div>
+<div class="sc-phone">📱 ${ph}${em?' · 📧 '+em:''}</div>
+<div class="sc-meta">${tags}</div>
+</div>`;
+}
+h+='</div>';
+el.innerHTML=h;
+}
+
+function showProf(phone){
+const prof=contactProfiles.get(phone);
+if(!prof)return;
+const nm=prof.name||'Unknown';
+const initials=nm.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+const colors=['#e06040','#4090e0','#40b080','#c060c0','#e0a030','#50b0b0','#d05070'];
+const bgCol=colors[Math.abs(hashStr(phone))%colors.length];
+
+let h=`<div class="prof-card">
+<div class="prof-hdr">
+<div class="prof-avatar" style="background:${bgCol}">${initials}</div>
+<div><h3>${nm.replace(/</g,'&lt;')}</h3><div class="prof-phone">📱 ${phone}</div></div>
+<button class="prof-close" onclick="closeProf()">✕</button>
+</div>
+<div class="prof-body">`;
+
+// Contact details
+h+=`<div class="prof-section"><h4>Contact</h4>`;
+if(prof.email)h+=`<div class="prof-row"><span class="prof-label">📧 Email</span><span class="prof-val">${prof.email}</span></div>`;
+if(prof.city||prof.state)h+=`<div class="prof-row"><span class="prof-label">📍 Location</span><span class="prof-val">${[prof.city,prof.state].filter(Boolean).join(', ')}</span></div>`;
+if(prof.source)h+=`<div class="prof-row"><span class="prof-label">📥 Lead Source</span><span class="prof-val">${prof.source}</span></div>`;
+h+=`</div>`;
+
+// CRM fields
+const hasCRM=prof.gemstone||prof.stage||prof.sales_owner||prof.lost_reason||prof.deal_value;
+if(hasCRM){
+h+=`<div class="prof-section"><h4>CRM</h4>`;
+if(prof.gemstone)h+=`<div class="prof-row"><span class="prof-label">💎 Gemstone</span><span class="prof-val"><div class="prof-tags">${(prof.gemstone+'').split(', ').map(g=>'<span class="prof-tag" style="background:'+((GC||{})[g]||'var(--s2)')+'30;color:'+((GC||{})[g]||'var(--t2)')+'">'+g+'</span>').join('')}</div></span></div>`;
+if(prof.stage)h+=`<div class="prof-row"><span class="prof-label">🎯 Stage</span><span class="prof-val"><div class="prof-tags">${(prof.stage+'').split(', ').map(s=>{const cfg=(SC||{})[s]||{};return '<span class="prof-tag" style="background:'+(cfg.color||'#555')+'25;color:'+(cfg.color||'var(--t2)')+'">'+(cfg.icon||'')+'&nbsp;'+s+'</span>';}).join('')}</div></span></div>`;
+if(prof.sales_owner)h+=`<div class="prof-row"><span class="prof-label">👤 Owner</span><span class="prof-val">${prof.sales_owner}</span></div>`;
+if(prof.deal_value)h+=`<div class="prof-row"><span class="prof-label">💰 Deal Value</span><span class="prof-val">₹${Number(prof.deal_value).toLocaleString()}</span></div>`;
+if(prof.lost_reason)h+=`<div class="prof-row"><span class="prof-label">📊 Lost Reason</span><span class="prof-val" style="color:var(--red)">${prof.lost_reason}</span></div>`;
+if(prof.tags)h+=`<div class="prof-row"><span class="prof-label">🏷 Tags</span><span class="prof-val">${prof.tags}</span></div>`;
+h+=`</div>`;
+}
+
+// Dates & metadata
+h+=`<div class="prof-section"><h4>Metadata</h4>`;
+if(prof.created_at)h+=`<div class="prof-row"><span class="prof-label">📅 Created</span><span class="prof-val">${fmtDate(prof.created_at)}</span></div>`;
+if(prof.updated_at)h+=`<div class="prof-row"><span class="prof-label">🔄 Updated</span><span class="prof-val">${fmtDate(prof.updated_at)}</span></div>`;
+if(prof.fs_id)h+=`<div class="prof-row"><span class="prof-label">🆔 Freshsales ID</span><span class="prof-val" style="font-family:monospace">${prof.fs_id}</span></div>`;
+h+=`<div class="prof-row"><span class="prof-label">📦 Source</span><span class="prof-val">${prof._src==='webhook'?'Webhook/Sync':'Embedded DB'+(prof._src==='merged'?' + Webhook':'')}</span></div>`;
+h+=`</div>`;
+
+h+=`</div>
+<div class="prof-actions">
+<button class="btn bw bs" onclick="window.open('https://wa.me/91${phone}','_blank')">💬 WhatsApp</button>
+<button class="btn bo bs" onclick="navigator.clipboard.writeText('${phone}');toast('Copied','in')">📋 Copy Phone</button>
+${prof.email?'<button class="btn bo bs" onclick="navigator.clipboard.writeText(\''+prof.email+'\');toast(\'Copied\',\'in\')">📧 Copy Email</button>':''}
+</div></div>`;
+
+document.getElementById('profOverlay').innerHTML=h;
+document.getElementById('profOverlay').style.display='flex';
+document.body.style.overflow='hidden';
+}
+
+function closeProf(){document.getElementById('profOverlay').style.display='none';document.body.style.overflow='';}
+function hashStr(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;}return h;}
+function fmtDate(d){try{const dt=new Date(d);if(isNaN(dt))return d;return dt.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})+' '+dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});}catch(e){return d;}}
+
+// ═══════════════════════════════════════════════════════
+// WEBHOOK / SYNC LOG
+// ═══════════════════════════════════════════════════════
+
+function loadWLog(){
+const wl=window.PRAMOGH_WEBHOOK_LOG||[];
+const wrap=document.getElementById('wlogWrap');
+const stats=document.getElementById('wlogStats');
+if(!wl.length){wrap.innerHTML='<p style="color:var(--t3);font-size:13px;padding:20px;text-align:center">No webhook activity recorded yet. New contacts pushed via Freshsales will appear here.</p>';stats.innerHTML='';return;}
+const total=wl.length;
+const okCount=wl.filter(e=>e.status==='ok').length;
+const failCount=wl.filter(e=>e.status==='fail').length;
+const syncCount=wl.filter(e=>e.action==='sync').length;
+const newCount=wl.filter(e=>e.action==='new').length;
+const updCount=wl.filter(e=>e.action==='updated').length;
+stats.innerHTML=`
+<div class="wlog-stat"><div class="ws-num" style="background:linear-gradient(135deg,var(--a2),var(--a));-webkit-background-clip:text;-webkit-text-fill-color:transparent">${total}</div><div class="ws-label">Total Events</div></div>
+<div class="wlog-stat"><div class="ws-num" style="color:var(--grn)">${okCount}</div><div class="ws-label">Success</div></div>
+<div class="wlog-stat"><div class="ws-num" style="color:var(--red)">${failCount}</div><div class="ws-label">Failed</div></div>
+<div class="wlog-stat"><div class="ws-num" style="color:var(--blu)">${syncCount}</div><div class="ws-label">Syncs</div></div>
+<div class="wlog-stat"><div class="ws-num" style="color:var(--w)">${newCount}</div><div class="ws-label">New</div></div>
+<div class="wlog-stat"><div class="ws-num" style="color:var(--a)">${updCount}</div><div class="ws-label">Updated</div></div>`;
+let h='<table class="wlog-table"><thead><tr><th>Time</th><th>Action</th><th>Phone</th><th>Name</th><th>Status</th><th>Details</th></tr></thead><tbody>';
+for(const e of wl.slice(0,200)){
+const ts=e.ts?fmtDate(e.ts):'—';
+const actionCls=e.action==='sync'?'wlog-sync':e.status==='ok'?'wlog-ok':'wlog-fail';
+const actionIcon=e.action==='sync'?'🔄':e.action==='new'?'🆕':e.action==='updated'?'✏️':e.action==='error'?'❌':'⚠️';
+const statusBadge=e.status==='ok'?'<span class="badge badge-ok">✓ OK</span>':'<span class="badge badge-fail">✗ FAIL</span>';
+let details='';
+if(e.action==='sync'&&e.status==='ok')details=`+${e.new||0} new, ~${e.updated||0} upd, ${e.total||0} total`;
+else if(e.error)details=`<div class="wlog-err">${(e.error+'').replace(/</g,'&lt;').slice(0,200)}</div>`;
+if(e.received_fields)details+=`<div class="wlog-fields">Fields: ${e.received_fields.join(', ')}</div>`;
+if(e.total&&e.action!=='sync')details+=`<span style="font-size:10px;color:var(--t3)">DB: ${e.total}</span>`;
+const phone=e.phone||'—';
+const name=(e.name||'—').replace(/</g,'&lt;');
+h+=`<tr>
+<td class="wl-ts">${ts}</td>
+<td class="wl-action ${actionCls}">${actionIcon} ${e.action||'?'}</td>
+<td style="font-family:monospace;font-size:11px">${phone!=='—'?'<span style="cursor:pointer;color:var(--a)" onclick="showProf(\''+phone+'\')">'+phone+'</span>':phone}</td>
+<td style="font-size:11px">${name}</td>
+<td>${statusBadge}</td>
+<td style="font-size:11px">${details}</td>
+</tr>`;
+}
+h+='</tbody></table>';
+wrap.innerHTML=h;
+}
+
 setTimeout(init,50);
 </script>
 </body>
