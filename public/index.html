@@ -190,6 +190,56 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t);min-heig
 .wlog-wrap{max-height:70vh;overflow-y:auto;border:1px solid var(--b);border-radius:12px}
 .wlog-refresh{font-size:11px;color:var(--a);cursor:pointer;padding:4px 12px;border:1px solid var(--a);border-radius:20px;background:0;transition:all .2s}
 .wlog-refresh:hover{background:var(--a);color:var(--bg)}
+
+/* ── Automations Tab ── */
+.auto-list{display:grid;gap:12px;margin-top:16px}
+.auto-card{background:var(--s);border:1px solid var(--b);border-radius:12px;padding:18px;transition:all .2s}
+.auto-card:hover{border-color:var(--b2)}
+.auto-card.auto-on{border-left:3px solid var(--w)}
+.auto-card.auto-off{border-left:3px solid var(--t3);opacity:.65}
+.auto-hdr{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.auto-hdr h4{font-size:14px;font-weight:600;flex:1}
+.auto-hdr .auto-id{font-size:9px;color:var(--t3);font-family:monospace}
+.auto-trigger{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.auto-trigger-both{background:rgba(59,130,246,0.15);color:var(--blu)}
+.auto-trigger-create{background:rgba(16,185,129,0.15);color:var(--grn)}
+.auto-trigger-update{background:rgba(251,191,36,0.15);color:#fbbf24}
+.auto-conds{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.auto-cond{display:flex;align-items:center;gap:4px;padding:3px 10px;background:var(--s2);border:1px solid var(--b);border-radius:8px;font-size:11px}
+.auto-cond .ac-field{color:var(--a2);font-weight:600}
+.auto-cond .ac-op{color:var(--t3);font-size:10px}
+.auto-cond .ac-val{color:var(--t)}
+.auto-action{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(37,211,102,0.06);border:1px solid rgba(37,211,102,0.15);border-radius:8px;font-size:12px;margin-top:8px}
+.auto-action .aa-icon{font-size:16px}
+.auto-action .aa-tmpl{color:var(--w);font-weight:600;font-family:monospace;font-size:11px}
+.auto-btns{display:flex;gap:6px;margin-top:10px}
+.auto-stats-row{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.auto-stat{background:var(--s);border:1px solid var(--b);border-radius:10px;padding:12px 20px;text-align:center;min-width:120px}
+.auto-stat .as-num{font-size:24px;font-weight:700;font-family:'Playfair Display',serif}
+.auto-stat .as-label{font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.auto-form{background:var(--s);border:1px solid var(--b);border-radius:12px;padding:24px;margin-top:16px}
+.auto-form h3{font-size:15px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.af-row{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.af-row label{font-size:12px;color:var(--t2);width:120px;flex-shrink:0}
+.af-row input,.af-row select{background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:8px 14px;color:var(--t);font-size:13px;outline:none;font-family:'Inter',sans-serif;flex:1;min-width:180px}
+.af-row input:focus,.af-row select:focus{border-color:var(--a)}
+.af-conds{margin:16px 0;padding:16px;background:var(--bg);border:1px solid var(--b);border-radius:10px}
+.af-conds h4{font-size:12px;color:var(--t2);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px}
+.af-cond-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.af-cond-row select,.af-cond-row input{background:var(--s2);border:1px solid var(--b);border-radius:6px;padding:6px 10px;color:var(--t);font-size:12px;outline:none}
+.af-cond-row .af-rm{background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:2px 6px}
+.af-params{margin:12px 0;padding:12px;background:var(--bg);border:1px solid var(--b);border-radius:10px}
+.af-params h4{font-size:12px;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+.af-param-row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.af-param-row input{background:var(--s2);border:1px solid var(--b);border-radius:6px;padding:6px 10px;color:var(--t);font-size:12px;outline:none;flex:1}
+.alog-wrap{max-height:60vh;overflow-y:auto;border:1px solid var(--b);border-radius:12px;margin-top:16px}
+.alog-table{width:100%;border-collapse:collapse;font-size:12px}
+.alog-table th{text-align:left;font-size:10px;color:var(--t2);padding:10px 12px;border-bottom:1px solid var(--b);text-transform:uppercase;letter-spacing:1px;position:sticky;top:0;background:var(--bg);z-index:2}
+.alog-table td{padding:8px 12px;border-bottom:1px solid var(--b);vertical-align:top}
+.alog-table tr:hover td{background:var(--s)}
+.auto-empty{text-align:center;padding:60px 20px;color:var(--t3)}
+.auto-empty .ae-icon{font-size:48px;margin-bottom:12px}
+.auto-section{margin-top:32px;padding-top:24px;border-top:1px solid var(--b)}
 </style>
 </head>
 <body>
@@ -206,6 +256,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t);min-heig
 <div class="ta" onclick="sT('wati')">💬 WhatsApp</div>
 <div class="ta" onclick="sT('search')">🔍 Search</div>
 <div class="ta" onclick="sT('webhooklog')">📡 Sync Log</div>
+<div class="ta" onclick="sT('automations')">⚡ Automations</div>
 <div class="ta" onclick="sT('history')">📜 Log</div>
 </div>
 <div class="mn">
@@ -275,6 +326,55 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t);min-heig
 <div class="wlog-stats" id="wlogStats"></div>
 <div class="wlog-wrap" id="wlogWrap"><p style="color:var(--t3);font-size:13px;padding:20px">Loading webhook log…</p></div>
 </div>
+<div class="pn" id="p-automations">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:10px">
+<h2 style="font-family:'Playfair Display',serif;font-size:20px">⚡ WhatsApp Automations</h2>
+<div style="display:flex;gap:8px">
+<button class="btn bo bs" onclick="toggleAutoForm()">+ New Automation</button>
+<button class="wlog-refresh" onclick="loadAutoData()">↻ Refresh</button>
+</div>
+</div>
+<p style="font-size:12px;color:var(--t2);margin-bottom:16px">Trigger-based WATI templates when contacts are created or updated matching attribute conditions.</p>
+<div class="auto-stats-row" id="autoStats"></div>
+<div id="autoFormWrap" style="display:none">
+<div class="auto-form">
+<h3 id="autoFormTitle">🛠 Create Automation</h3>
+<div class="af-row"><label>Name</label><input id="afName" placeholder="e.g. Welcome Hot Leads"/></div>
+<div class="af-row"><label>Trigger On</label><select id="afTrigger"><option value="both">Both (Create + Update)</option><option value="create">New Contacts Only</option><option value="update">Updated Contacts Only</option></select></div>
+<div class="af-conds">
+<h4>🎯 Conditions (ALL must match)</h4>
+<div id="afCondList"></div>
+<button class="btn bo bs" onclick="addCondRow()" style="margin-top:8px">+ Add Condition</button>
+</div>
+<div style="margin:16px 0;padding:16px;background:var(--bg);border:1px solid var(--b);border-radius:10px">
+<h4 style="font-size:12px;color:var(--t2);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">💬 Action — Send WATI Template</h4>
+<div class="af-row"><label>Channel</label><select id="afChannel"></select></div>
+<div class="af-row"><label>Template Name</label><input id="afTemplate" placeholder="e.g. welcome_hot_lead_v2"/></div>
+<div class="af-row"><label>Broadcast Name</label><input id="afBroadcast" placeholder="e.g. auto_welcome (optional)"/></div>
+</div>
+<div class="af-params">
+<h4>📝 Template Parameters (optional)</h4>
+<p style="font-size:11px;color:var(--t3);margin-bottom:8px">Map WATI template variables to contact fields</p>
+<div id="afParamList"></div>
+<button class="btn bo bs" onclick="addParamRow()" style="margin-top:8px">+ Add Parameter</button>
+</div>
+<div class="af-row"><label>Cooldown (hrs)</label><input id="afCooldown" type="number" value="0" min="0" placeholder="0 = no cooldown" style="max-width:120px"/></div>
+<div style="display:flex;gap:8px;margin-top:16px">
+<button class="btn bg" onclick="saveAutomation()">💾 Save</button>
+<button class="btn bo" onclick="toggleAutoForm()">Cancel</button>
+</div>
+<input type="hidden" id="afEditId" value=""/>
+<div class="af-row" style="margin-top:12px"><label>Admin Password</label><input id="afAdminPw" type="password" placeholder="Required for save"/></div>
+</div>
+</div>
+<div id="autoList"></div>
+<div class="auto-section">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+<h3 style="font-family:'Playfair Display',serif;font-size:16px">📜 Execution Log</h3>
+</div>
+<div class="alog-wrap" id="autoLogWrap"><p style="color:var(--t3);font-size:13px;padding:20px;text-align:center">No automation executions yet.</p></div>
+</div>
+</div>
 <div class="pn" id="p-history">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
 <h2 style="font-family:'Playfair Display',serif;font-size:20px">📜 Broadcast History</h2>
@@ -286,6 +386,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t);min-heig
 <div class="prof-overlay" id="profOverlay" style="display:none" onclick="if(event.target===this)closeProf()"></div>
 <script src="contacts.js"></script>
 <script src="webhook-log.js"></script>
+<script src="automations.js"></script>
+<script src="automation-log.js"></script>
 <script>
 const PRODUCTS=["7 Chakra Rakhi", "Agate", "Amethyst", "Amethyst Bracelet", "Aquamarine", "Bi-Color Sapphire", "Black-Star", "Blood Stone", "Blue Moonstone", "Blue Zircon", "Blue sapphire", "Burmese Ruby", "Catseye", "Citrine", "Citrine Bracelet", "Colombian Emerald", "Crystal Quartz", "Diamond", "Emerald", "Green Aventurine Bracelet", "Hematite", "Hessonite", "Iolite", "Irani Firoza", "Jade", "Keshi Pearl", "Labrodorite", "Lapiz Lazuli", "Malachite", "Mix Gemstones", "Moonstone", "Onyx", "Opal", "Pearl", "Pearl - Black", "Pearl - Golden", "Peridot", "Purple Sapphire", "Pyrite", "Pyrite Bracelet", "Rainbow Moonstone", "Red coral", "Rose Quartz", "Ruby", "Rudraksh", "Star Ruby", "Sulemani Haqeeq", "Sulemani Haqeeq Bracelet", "Sulemani Haqeeq Malla", "Sun Stone", "Tiger-Eye", "Topaz", "Tourmaline", "Turquoise", "White Coral", "White Moonstone Bracelet", "White Sapphire", "Yellow Sapphire", "Yemeni Haqeeq", "Zambian Emerald", "Zircon"];
 const STATUSES=["CNC", "Connected - Interested", "Converted", "Hold", "Hot Leads", "Lead Lost", "Lost", "New", "Nurture 15D", "Nurture 1M", "Nurture 7D", "Nurture LT", "Shared Catalogue"];
@@ -364,7 +466,7 @@ if(added)console.log('Merged '+added+' new contacts from webhook/sync');
 }
 }
 
-function sT(id){const tabs=['filter','lists','manual','wati','search','webhooklog','history'];document.querySelectorAll('.ta').forEach((t,i)=>t.classList.toggle('on',tabs[i]===id));document.querySelectorAll('.pn').forEach(p=>p.classList.remove('on'));document.getElementById('p-'+id).classList.add('on');if(id==='lists')rL();if(id==='wati'){pWS();loadChannels();}if(id==='history')rH();if(id==='webhooklog')loadWLog();if(id==='search')document.getElementById('srchInput').focus();}
+function sT(id){const tabs=['filter','lists','manual','wati','search','webhooklog','automations','history'];document.querySelectorAll('.ta').forEach((t,i)=>t.classList.toggle('on',tabs[i]===id));document.querySelectorAll('.pn').forEach(p=>p.classList.remove('on'));document.getElementById('p-'+id).classList.add('on');if(id==='lists')rL();if(id==='wati'){pWS();loadChannels();}if(id==='history')rH();if(id==='webhooklog')loadWLog();if(id==='automations')loadAutoData();if(id==='search')document.getElementById('srchInput').focus();}
 
 function toast(m,tp='ok'){const t=document.getElementById('tst');t.textContent=m;t.className='tst sh '+tp;setTimeout(()=>t.classList.remove('sh'),3000);}
 
@@ -731,6 +833,333 @@ h+=`<tr>
 h+='</tbody></table>';
 wrap.innerHTML=h;
 }
+
+// ═══════════════════════════════════════════════════════
+// AUTOMATIONS ENGINE (UI)
+// ═══════════════════════════════════════════════════════
+
+const AUTO_FIELDS = [
+  {value:'stage',label:'Stage'},
+  {value:'gemstone',label:'Gemstone / Product'},
+  {value:'sales_owner',label:'Sales Owner'},
+  {value:'lost_reason',label:'Lost Reason'},
+  {value:'deal_value',label:'Deal Value (₹)'},
+  {value:'won_amount',label:'Won Amount (₹)'},
+  {value:'order_count',label:'Order Count'},
+  {value:'source',label:'Lead Source'},
+  {value:'city',label:'City'},
+  {value:'state',label:'State'},
+  {value:'name',label:'Name'},
+  {value:'email',label:'Email'},
+  {value:'tags',label:'Tags'},
+];
+const AUTO_OPS = [
+  {value:'equals',label:'Equals'},
+  {value:'not_equals',label:'Not Equals'},
+  {value:'contains',label:'Contains'},
+  {value:'not_contains',label:'Not Contains'},
+  {value:'greater_than',label:'Greater Than'},
+  {value:'less_than',label:'Less Than'},
+  {value:'is_empty',label:'Is Empty'},
+  {value:'is_not_empty',label:'Is Not Empty'},
+  {value:'in',label:'In (comma-separated)'},
+  {value:'not_in',label:'Not In (comma-separated)'},
+];
+
+let autoData=[], autoChannels={}, condCounter=0, paramCounter=0;
+
+async function loadAutoData(){
+  try{
+    const r=await fetch('/api/automations');
+    if(r.ok){
+      const d=await r.json();
+      autoData=d.automations||[];
+      autoChannels=d.channels||{};
+    }
+  }catch(e){
+    console.error('Failed to load automations:',e);
+    // Fallback to client-side data
+    autoData=window.PRAMOGH_AUTOMATIONS||[];
+  }
+  renderAutoStats();
+  renderAutoList();
+  renderAutoLog();
+  populateAutoChannels();
+}
+
+function renderAutoStats(){
+  const el=document.getElementById('autoStats');
+  const total=autoData.length;
+  const active=autoData.filter(a=>a.enabled).length;
+  const log=window.PRAMOGH_AUTOMATION_LOG||[];
+  const sent=log.filter(e=>e.status==='sent').length;
+  const failed=log.filter(e=>e.status!=='sent').length;
+  el.innerHTML=`
+    <div class="auto-stat"><div class="as-num" style="background:linear-gradient(135deg,var(--a2),var(--a));-webkit-background-clip:text;-webkit-text-fill-color:transparent">${total}</div><div class="as-label">Total Rules</div></div>
+    <div class="auto-stat"><div class="as-num" style="color:var(--w)">${active}</div><div class="as-label">Active</div></div>
+    <div class="auto-stat"><div class="as-num" style="color:var(--grn)">${sent}</div><div class="as-label">Sent</div></div>
+    <div class="auto-stat"><div class="as-num" style="color:${failed?'var(--red)':'var(--t3)'}">${failed}</div><div class="as-label">Failed</div></div>`;
+}
+
+function renderAutoList(){
+  const el=document.getElementById('autoList');
+  if(!autoData.length){
+    el.innerHTML='<div class="auto-empty"><div class="ae-icon">⚡</div><p>No automations configured yet</p><p style="font-size:12px;margin-top:8px;color:var(--t3)">Create your first automation to auto-send WhatsApp templates when contacts match conditions</p></div>';
+    return;
+  }
+  let h='<div class="auto-list">';
+  for(const a of autoData){
+    const trigClass=a.trigger_on==='create'?'create':a.trigger_on==='update'?'update':'both';
+    const trigLabel=a.trigger_on==='create'?'New Only':a.trigger_on==='update'?'Update Only':'Create + Update';
+    const onOff=a.enabled?'auto-on':'auto-off';
+    h+=`<div class="auto-card ${onOff}">`;
+    h+=`<div class="auto-hdr"><h4>${a.enabled?'🟢':'⚫'} ${esc(a.name)}</h4><span class="auto-trigger auto-trigger-${trigClass}">${trigLabel}</span><span class="auto-id">${a.id}</span></div>`;
+    // Conditions
+    if(a.conditions&&a.conditions.length){
+      h+=`<div class="auto-conds">`;
+      for(const c of a.conditions){
+        const fLabel=(AUTO_FIELDS.find(f=>f.value===c.field)||{}).label||c.field;
+        const oLabel=(AUTO_OPS.find(o=>o.value===c.operator)||{}).label||c.operator;
+        const needsVal=c.operator!=='is_empty'&&c.operator!=='is_not_empty';
+        h+=`<div class="auto-cond"><span class="ac-field">${fLabel}</span><span class="ac-op">${oLabel}</span>${needsVal?`<span class="ac-val">${esc(c.value||'')}</span>`:''}</div>`;
+      }
+      h+=`</div>`;
+    }else{
+      h+=`<div style="font-size:11px;color:var(--t3);margin:6px 0">⚠️ No conditions — fires for every contact</div>`;
+    }
+    // Action
+    const act=a.action||{};
+    const chName=autoChannels[act.channel_id]?autoChannels[act.channel_id].name:(act.channel_id||'—');
+    h+=`<div class="auto-action"><span class="aa-icon">💬</span><span>Send</span><span class="aa-tmpl">${esc(act.template_name||'—')}</span><span style="color:var(--t3)">via</span><span style="font-size:11px">${esc(chName)}</span></div>`;
+    // Params
+    if(act.custom_params&&act.custom_params.length){
+      h+=`<div style="font-size:10px;color:var(--t3);margin-top:4px">Params: ${act.custom_params.map(p=>'{{'+p.name+'}}→'+p.field).join(', ')}</div>`;
+    }
+    if(a.cooldown_hours)h+=`<div style="font-size:10px;color:var(--t3);margin-top:2px">⏱ Cooldown: ${a.cooldown_hours}h</div>`;
+    // Buttons
+    h+=`<div class="auto-btns">`;
+    h+=`<button class="btn ${a.enabled?'bw':'bo'} bs" onclick="toggleAuto('${a.id}')">${a.enabled?'🟢 Active':'⚫ Paused'}</button>`;
+    h+=`<button class="btn bo bs" onclick="editAuto('${a.id}')">✏️ Edit</button>`;
+    h+=`<button class="btn br2 bs" onclick="deleteAuto('${a.id}')">🗑</button>`;
+    h+=`</div></div>`;
+  }
+  h+='</div>';
+  el.innerHTML=h;
+}
+
+function renderAutoLog(){
+  const log=window.PRAMOGH_AUTOMATION_LOG||[];
+  const wrap=document.getElementById('autoLogWrap');
+  if(!log.length){wrap.innerHTML='<p style="color:var(--t3);font-size:13px;padding:20px;text-align:center">No automation executions yet. Automations fire when webhook contacts match conditions.</p>';return;}
+  let h='<table class="alog-table"><thead><tr><th>Time</th><th>Automation</th><th>Phone</th><th>Name</th><th>Template</th><th>Status</th><th>Details</th></tr></thead><tbody>';
+  for(const e of log.slice(0,200)){
+    const ts=e.ts?fmtDate(e.ts):'—';
+    const stBadge=e.status==='sent'?'<span class="badge badge-ok">✓ Sent</span>':e.status==='failed'?'<span class="badge badge-fail">✗ Failed</span>':'<span class="badge badge-fail">✗ Error</span>';
+    h+=`<tr>
+      <td style="font-size:10px;color:var(--t3);white-space:nowrap">${ts}</td>
+      <td style="font-size:11px;font-weight:600">${esc(e.automation_name||'—')}</td>
+      <td style="font-family:monospace;font-size:11px"><span style="cursor:pointer;color:var(--a)" onclick="showProf('${e.phone||''}')">${e.phone||'—'}</span></td>
+      <td style="font-size:11px">${esc(e.contact_name||'—')}</td>
+      <td style="font-size:11px;color:var(--w);font-family:monospace">${esc(e.template||'—')}</td>
+      <td>${stBadge}</td>
+      <td style="font-size:10px;color:var(--red);max-width:200px;word-break:break-word">${esc(e.error||'')}</td>
+    </tr>`;
+  }
+  h+='</tbody></table>';
+  wrap.innerHTML=h;
+}
+
+function populateAutoChannels(){
+  const sel=document.getElementById('afChannel');
+  sel.innerHTML='<option value="">— Select WATI Channel —</option>';
+  for(const[id,ch] of Object.entries(autoChannels)){
+    sel.innerHTML+=`<option value="${id}">📡 ${ch.name}</option>`;
+  }
+  // Also populate from loaded channels if autoChannels empty
+  if(!Object.keys(autoChannels).length){
+    for(const[id,ch] of Object.entries(channels)){
+      sel.innerHTML+=`<option value="${id}">📡 ${ch.name}</option>`;
+    }
+  }
+}
+
+function toggleAutoForm(show){
+  const w=document.getElementById('autoFormWrap');
+  if(show===undefined)show=w.style.display==='none';
+  w.style.display=show?'block':'none';
+  if(show&&!document.getElementById('afCondList').innerHTML){addCondRow();}
+}
+
+function resetAutoForm(){
+  document.getElementById('afName').value='';
+  document.getElementById('afTrigger').value='both';
+  document.getElementById('afChannel').value='';
+  document.getElementById('afTemplate').value='';
+  document.getElementById('afBroadcast').value='';
+  document.getElementById('afCooldown').value='0';
+  document.getElementById('afEditId').value='';
+  document.getElementById('afCondList').innerHTML='';
+  document.getElementById('afParamList').innerHTML='';
+  document.getElementById('autoFormTitle').textContent='🛠 Create Automation';
+  condCounter=0;paramCounter=0;
+  addCondRow();
+}
+
+function addCondRow(field,op,val){
+  const id='cond_'+condCounter++;
+  const fieldOpts=AUTO_FIELDS.map(f=>`<option value="${f.value}" ${f.value===field?'selected':''}>${f.label}</option>`).join('');
+  const opOpts=AUTO_OPS.map(o=>`<option value="${o.value}" ${o.value===op?'selected':''}>${o.label}</option>`).join('');
+  const needsVal=op!=='is_empty'&&op!=='is_not_empty';
+  const html=`<div class="af-cond-row" id="${id}">
+    <select onchange="condOpChange('${id}')">${fieldOpts}</select>
+    <select class="af-op-sel" onchange="condOpChange('${id}')">${opOpts}</select>
+    <input class="af-val-input" placeholder="Value" value="${esc(val||'')}" style="${needsVal?'':'display:none'}"/>
+    <button class="af-rm" onclick="document.getElementById('${id}').remove()">×</button>
+  </div>`;
+  document.getElementById('afCondList').insertAdjacentHTML('beforeend',html);
+}
+
+function condOpChange(rowId){
+  const row=document.getElementById(rowId);
+  if(!row)return;
+  const opSel=row.querySelector('.af-op-sel');
+  const valInput=row.querySelector('.af-val-input');
+  const noVal=['is_empty','is_not_empty'];
+  valInput.style.display=noVal.includes(opSel.value)?'none':'';
+}
+
+function addParamRow(name,field){
+  const id='param_'+paramCounter++;
+  const html=`<div class="af-param-row" id="${id}">
+    <input placeholder="Template var name (e.g. name)" value="${esc(name||'')}"/>
+    <span style="color:var(--t3);font-size:12px">→</span>
+    <input placeholder="Contact field (e.g. name, gemstone)" value="${esc(field||'')}"/>
+    <button class="af-rm" onclick="document.getElementById('${id}').remove()">×</button>
+  </div>`;
+  document.getElementById('afParamList').insertAdjacentHTML('beforeend',html);
+}
+
+function collectConditions(){
+  const rows=document.querySelectorAll('#afCondList .af-cond-row');
+  const conds=[];
+  for(const row of rows){
+    const sels=row.querySelectorAll('select');
+    const input=row.querySelector('.af-val-input');
+    const field=sels[0]?.value;
+    const op=sels[1]?.value;
+    const val=input?.value?.trim()||'';
+    if(field&&op)conds.push({field,operator:op,value:val});
+  }
+  return conds;
+}
+
+function collectParams(){
+  const rows=document.querySelectorAll('#afParamList .af-param-row');
+  const params=[];
+  for(const row of rows){
+    const inputs=row.querySelectorAll('input');
+    const name=inputs[0]?.value?.trim();
+    const field=inputs[1]?.value?.trim();
+    if(name&&field)params.push({name,field});
+  }
+  return params;
+}
+
+async function saveAutomation(){
+  const name=document.getElementById('afName').value.trim();
+  if(!name)return toast('Enter automation name','er');
+  const template=document.getElementById('afTemplate').value.trim();
+  if(!template)return toast('Enter template name','er');
+  const channelId=document.getElementById('afChannel').value;
+  if(!channelId)return toast('Select WATI channel','er');
+  const pw=document.getElementById('afAdminPw').value;
+  if(!pw)return toast('Enter admin password','er');
+
+  const editId=document.getElementById('afEditId').value;
+  const automation={
+    name,
+    trigger_on:document.getElementById('afTrigger').value,
+    conditions:collectConditions(),
+    action:{
+      channel_id:channelId,
+      template_name:template,
+      broadcast_name:document.getElementById('afBroadcast').value.trim()||'',
+      custom_params:collectParams(),
+    },
+    cooldown_hours:parseInt(document.getElementById('afCooldown').value)||0,
+    enabled:true,
+  };
+
+  try{
+    const body={adminPassword:pw,automation};
+    if(editId){body.action='update';body.automationId=editId;}
+    else{body.action='create';}
+    const r=await fetch('/api/automations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(r.ok&&d.success){
+      autoData=d.automations||autoData;
+      toast(editId?'Automation updated':'Automation created');
+      toggleAutoForm(false);
+      resetAutoForm();
+      renderAutoStats();
+      renderAutoList();
+    }else{
+      toast(d.error||'Save failed','er');
+    }
+  }catch(e){toast('Error: '+e.message,'er');}
+}
+
+function editAuto(id){
+  const a=autoData.find(x=>x.id===id);
+  if(!a)return;
+  resetAutoForm();
+  document.getElementById('afEditId').value=id;
+  document.getElementById('autoFormTitle').textContent='✏️ Edit Automation';
+  document.getElementById('afName').value=a.name||'';
+  document.getElementById('afTrigger').value=a.trigger_on||'both';
+  document.getElementById('afCooldown').value=a.cooldown_hours||0;
+  // Populate action
+  const act=a.action||{};
+  document.getElementById('afChannel').value=act.channel_id||'';
+  document.getElementById('afTemplate').value=act.template_name||'';
+  document.getElementById('afBroadcast').value=act.broadcast_name||'';
+  // Populate conditions
+  document.getElementById('afCondList').innerHTML='';condCounter=0;
+  if(a.conditions&&a.conditions.length){
+    for(const c of a.conditions)addCondRow(c.field,c.operator,c.value);
+  }else{addCondRow();}
+  // Populate params
+  document.getElementById('afParamList').innerHTML='';paramCounter=0;
+  if(act.custom_params&&act.custom_params.length){
+    for(const p of act.custom_params)addParamRow(p.name,p.field);
+  }
+  toggleAutoForm(true);
+}
+
+async function toggleAuto(id){
+  const pw=prompt('Enter admin password to toggle:');
+  if(!pw)return;
+  try{
+    const r=await fetch('/api/automations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminPassword:pw,action:'toggle',automationId:id})});
+    const d=await r.json();
+    if(r.ok&&d.success){autoData=d.automations||autoData;renderAutoStats();renderAutoList();toast('Automation '+d.action);}
+    else{toast(d.error||'Toggle failed','er');}
+  }catch(e){toast('Error: '+e.message,'er');}
+}
+
+async function deleteAuto(id){
+  if(!confirm('Delete this automation?'))return;
+  const pw=prompt('Enter admin password:');
+  if(!pw)return;
+  try{
+    const r=await fetch('/api/automations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminPassword:pw,action:'delete',automationId:id})});
+    const d=await r.json();
+    if(r.ok&&d.success){autoData=d.automations||autoData;renderAutoStats();renderAutoList();toast('Automation deleted');}
+    else{toast(d.error||'Delete failed','er');}
+  }catch(e){toast('Error: '+e.message,'er');}
+}
+
+function esc(s){return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 setTimeout(init,50);
 </script>
