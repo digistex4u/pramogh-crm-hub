@@ -1,5 +1,6 @@
 // Vercel Serverless Function — receives real-time contact pushes from Freshsales workflows
 // Also maintains webhook-log.js for dashboard visibility
+// v2: Added WhatsApp automation engine — evaluates rules after contact merge
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -99,6 +100,10 @@ export default async function handler(req, res) {
       if (lk.includes('tag')) contact.tags = v;
       if (lk.includes('deal value') || lk.includes('deal_value') || lk.includes('amount'))
         contact.deal_value = parseFloat(v) || 0;
+      if (lk.includes('order count') || lk.includes('order_count'))
+        contact.order_count = parseInt(v) || 0;
+      if (lk.includes('won amount') || lk.includes('won_amount') || lk.includes('total_won'))
+        contact.won_amount = parseFloat(v) || 0;
     }
 
     contact.updated_at = new Date().toISOString();
@@ -119,9 +124,22 @@ export default async function handler(req, res) {
       fields_received: Object.keys(raw).slice(0, 15),
     }, repo, githubToken).catch(e => console.error('Log write error:', e.message));
 
+    // ═══════════════════════════════════════════════════
+    // AUTOMATION ENGINE — evaluate rules after merge
+    // ═══════════════════════════════════════════════════
+    let autoResults = [];
+    try {
+      autoResults = await evaluateAutomations(contact, result.action, repo, githubToken);
+    } catch (autoErr) {
+      console.error('Automation engine error:', autoErr.message);
+      // Don't fail the webhook because of automation errors
+    }
+
     return res.status(200).json({
       success: true, phone: contact.phone, name: contact.name,
       action: result.action, total: result.total, commit: result.sha,
+      automations_fired: autoResults.length,
+      automations: autoResults.map(r => ({ name: r.name, sent: r.sent, error: r.error })),
     });
   } catch (err) {
     console.error('Webhook error:', err.message);
@@ -139,6 +157,297 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 }
+
+// ═══════════════════════════════════════════════════════════
+// AUTOMATION ENGINE
+// ═══════════════════════════════════════════════════════════
+
+async function evaluateAutomations(contact, contactAction, repo, githubToken) {
+  const ghHeaders = {
+    'Authorization': `Bearer ${githubToken}`,
+    'Accept': 'application/vnd.github.v3+json',
+    'User-Agent': 'pramogh-crm-automation',
+  };
+
+  // 1. Read automations from GitHub
+  const automations = await readGitHubFile(
+    `https://api.github.com/repos/${repo}/contents/public/automations.js`,
+    ghHeaders,
+    /window\.PRAMOGH_AUTOMATIONS\s*=\s*(\[[\s\S]*\])\s*;?/
+  );
+
+  if (!automations || !automations.length) return [];
+
+  // 2. Read recent automation log for cooldown checks
+  const recentLog = await readGitHubFile(
+    `https://api.github.com/repos/${repo}/contents/public/automation-log.js`,
+    ghHeaders,
+    /window\.PRAMOGH_AUTOMATION_LOG\s*=\s*(\[[\s\S]*\])\s*;?/
+  );
+
+  const results = [];
+
+  // 3. Evaluate each enabled automation
+  for (const auto of automations) {
+    if (!auto.enabled) continue;
+
+    // Check trigger type
+    if (auto.trigger_on === 'create' && contactAction !== 'new') continue;
+    if (auto.trigger_on === 'update' && contactAction !== 'updated') continue;
+    // 'both' matches either
+
+    // Check cooldown
+    if (auto.cooldown_hours && auto.cooldown_hours > 0 && recentLog) {
+      const cooldownMs = auto.cooldown_hours * 3600000;
+      const recentFire = recentLog.find(
+        e => e.automation_id === auto.id &&
+             e.phone === contact.phone &&
+             e.status === 'sent' &&
+             (Date.now() - new Date(e.ts).getTime()) < cooldownMs
+      );
+      if (recentFire) {
+        console.log(`Automation "${auto.name}" skipped for ${contact.phone} — cooldown active`);
+        continue;
+      }
+    }
+
+    // Evaluate conditions (ALL must match = AND logic)
+    const matched = evaluateConditions(auto.conditions, contact);
+    if (!matched) continue;
+
+    // 4. Fire the automation — send WATI template
+    const fireResult = await fireAutomation(auto, contact);
+    results.push(fireResult);
+  }
+
+  // 5. Log all results to automation-log.js (fire-and-forget)
+  if (results.length > 0) {
+    appendAutomationLog(results, contact, repo, githubToken, ghHeaders)
+      .catch(e => console.error('Automation log error:', e.message));
+  }
+
+  return results;
+}
+
+function evaluateConditions(conditions, contact) {
+  if (!conditions || !conditions.length) return true; // No conditions = always match
+
+  for (const cond of conditions) {
+    const { field, operator, value } = cond;
+    const contactVal = getContactField(contact, field);
+
+    switch (operator) {
+      case 'equals':
+        if (String(contactVal || '').toLowerCase() !== String(value || '').toLowerCase()) return false;
+        break;
+      case 'not_equals':
+        if (String(contactVal || '').toLowerCase() === String(value || '').toLowerCase()) return false;
+        break;
+      case 'contains':
+        if (!String(contactVal || '').toLowerCase().includes(String(value || '').toLowerCase())) return false;
+        break;
+      case 'not_contains':
+        if (String(contactVal || '').toLowerCase().includes(String(value || '').toLowerCase())) return false;
+        break;
+      case 'greater_than':
+        if (parseFloat(contactVal || 0) <= parseFloat(value || 0)) return false;
+        break;
+      case 'less_than':
+        if (parseFloat(contactVal || 0) >= parseFloat(value || 0)) return false;
+        break;
+      case 'is_empty':
+        if (contactVal !== undefined && contactVal !== null && contactVal !== '') return false;
+        break;
+      case 'is_not_empty':
+        if (contactVal === undefined || contactVal === null || contactVal === '') return false;
+        break;
+      case 'in': {
+        const vals = String(value || '').split(',').map(v => v.trim().toLowerCase());
+        if (!vals.includes(String(contactVal || '').toLowerCase())) return false;
+        break;
+      }
+      case 'not_in': {
+        const vals = String(value || '').split(',').map(v => v.trim().toLowerCase());
+        if (vals.includes(String(contactVal || '').toLowerCase())) return false;
+        break;
+      }
+      default:
+        return false; // Unknown operator = fail safe
+    }
+  }
+
+  return true; // All conditions passed
+}
+
+function getContactField(contact, field) {
+  // Direct field match
+  if (contact[field] !== undefined) return contact[field];
+  // Try common aliases
+  const aliases = {
+    'status': 'stage',
+    'product': 'gemstone',
+    'product_name': 'gemstone',
+    'owner': 'sales_owner',
+  };
+  if (aliases[field] && contact[aliases[field]] !== undefined) return contact[aliases[field]];
+  return undefined;
+}
+
+async function fireAutomation(auto, contact) {
+  const actionCfg = auto.action || {};
+  const result = {
+    automation_id: auto.id,
+    name: auto.name,
+    phone: contact.phone,
+    contact_name: contact.name,
+    ts: new Date().toISOString(),
+  };
+
+  try {
+    // Get WATI channel config
+    const channels = JSON.parse(process.env.WATI_CHANNELS || '{}');
+    const channel = channels[actionCfg.channel_id];
+
+    if (!channel) {
+      result.status = 'error';
+      result.error = 'Channel not found: ' + (actionCfg.channel_id || 'none');
+      result.sent = false;
+      return result;
+    }
+
+    const baseUrl = channel.url.replace(/\/$/, '');
+    const token = channel.token;
+
+    // Build custom params — map template {{variables}} to contact fields
+    const customParams = [];
+    if (actionCfg.custom_params && Array.isArray(actionCfg.custom_params)) {
+      for (const param of actionCfg.custom_params) {
+        const val = getContactField(contact, param.field);
+        customParams.push({
+          name: param.name,
+          value: val !== undefined && val !== null ? String(val) : '',
+        });
+      }
+    }
+
+    // Send WATI template message
+    const endpoint = `${baseUrl}/api/v1/sendTemplateMessage`;
+    const payload = {
+      broadcast_name: actionCfg.broadcast_name || 'pramogh_auto_' + auto.id,
+      template_name: actionCfg.template_name,
+      receivers: [{
+        whatsappNumber: contact.phone.replace(/^\+/, ''),
+        customParams: customParams,
+      }],
+    };
+
+    console.log(`Automation "${auto.name}" → sending "${actionCfg.template_name}" to ${contact.phone}`);
+
+    const resp = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token.startsWith('Bearer ') ? token : `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (resp.ok) {
+      result.status = 'sent';
+      result.sent = true;
+      result.template = actionCfg.template_name;
+      console.log(`Automation "${auto.name}" ✅ sent to ${contact.phone}`);
+    } else {
+      const errText = await resp.text();
+      let reason = `HTTP ${resp.status}`;
+      try { const ej = JSON.parse(errText); reason = ej.message || ej.error || ej.result || reason; } catch (e) {}
+      result.status = 'failed';
+      result.sent = false;
+      result.error = reason;
+      console.error(`Automation "${auto.name}" ❌ failed for ${contact.phone}: ${reason}`);
+    }
+  } catch (err) {
+    result.status = 'error';
+    result.sent = false;
+    result.error = err.message || 'Network error';
+    console.error(`Automation "${auto.name}" ❌ error: ${err.message}`);
+  }
+
+  return result;
+}
+
+// ── GitHub File Helpers ──
+
+async function readGitHubFile(url, headers, regex) {
+  try {
+    const resp = await fetch(url, { headers });
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    const content = Buffer.from(data.content, 'base64').toString('utf-8');
+    const match = content.match(regex);
+    if (match) {
+      try { return JSON.parse(match[1]); } catch (e) {}
+    }
+  } catch (e) {}
+  return [];
+}
+
+async function appendAutomationLog(results, contact, repo, githubToken, ghHeaders) {
+  const filePath = 'public/automation-log.js';
+  const apiUrl = `https://api.github.com/repos/${repo}/contents/${filePath}`;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let existingLog = [];
+    let sha = null;
+
+    const getResp = await fetch(apiUrl, { headers: ghHeaders });
+    if (getResp.ok) {
+      const fileData = await getResp.json();
+      sha = fileData.sha;
+      const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
+      const match = content.match(/window\.PRAMOGH_AUTOMATION_LOG\s*=\s*(\[[\s\S]*\])\s*;?/);
+      if (match) {
+        try { existingLog = JSON.parse(match[1]); } catch (e) {}
+      }
+    }
+
+    // Prepend new entries (newest first), cap at 500
+    for (const r of results.reverse()) {
+      existingLog.unshift({
+        ts: r.ts,
+        automation_id: r.automation_id,
+        automation_name: r.name,
+        phone: r.phone,
+        contact_name: r.contact_name,
+        status: r.status,
+        template: r.template || '',
+        error: r.error || '',
+      });
+    }
+    if (existingLog.length > 500) existingLog = existingLog.slice(0, 500);
+
+    const jsContent = '// Pramogh CRM Automation Execution Log\n// Updated: ' + new Date().toISOString() + '\n// ' + existingLog.length + ' entries\nwindow.PRAMOGH_AUTOMATION_LOG = ' + JSON.stringify(existingLog) + ';\n';
+
+    const putBody = {
+      message: 'AutoLog: ' + results.length + ' automation(s) fired for ' + contact.phone,
+      content: Buffer.from(jsContent).toString('base64'),
+      branch: 'main',
+    };
+    if (sha) putBody.sha = sha;
+
+    const putResp = await fetch(apiUrl, { method: 'PUT', headers: ghHeaders, body: JSON.stringify(putBody) });
+    if (putResp.ok) return;
+
+    if (putResp.status === 409 && attempt < 1) {
+      await new Promise(r => setTimeout(r, 500));
+      continue;
+    }
+    console.error('Automation log push failed:', putResp.status);
+    return;
+  }
+}
+
+// ── Original Contact Merge Logic ──
 
 // Scan all values for anything that looks like an Indian phone number
 function findPhoneInValues(obj) {
