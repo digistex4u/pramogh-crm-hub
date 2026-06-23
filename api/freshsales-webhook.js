@@ -474,16 +474,51 @@ async function mergeAndPush(contact, repo, token, retries = 3) {
   for (let attempt = 0; attempt < retries; attempt++) {
     let existingContacts = [];
     let sha = null;
+    let fileExists = false;
+
     const getResp = await fetch(apiUrl, { headers });
     if (getResp.ok) {
       const fileData = await getResp.json();
       sha = fileData.sha;
-      const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
-      const match = content.match(/window\.PRAMOGH_CONTACTS\s*=\s*(\[[\s\S]*\])\s*;?/);
-      if (match) {
-        try { existingContacts = JSON.parse(match[1]); } catch (e) { }
+      fileExists = true;
+
+      let content = '';
+
+      if (fileData.content) {
+        // File ≤ 1MB — content returned inline by Contents API
+        content = Buffer.from(fileData.content, 'base64').toString('utf-8');
+      } else if (fileData.sha) {
+        // File > 1MB — Contents API omits content; fetch via Git Blob API
+        console.log('contacts.js > 1MB, using Blob API (sha: ' + fileData.sha.slice(0, 7) + ')');
+        const blobUrl = `https://api.github.com/repos/${repo}/git/blobs/${fileData.sha}`;
+        const blobResp = await fetch(blobUrl, { headers });
+        if (blobResp.ok) {
+          const blobData = await blobResp.json();
+          if (blobData.content) {
+            content = Buffer.from(blobData.content, 'base64').toString('utf-8');
+          }
+        } else {
+          console.error('Blob API failed:', blobResp.status);
+        }
+      }
+
+      if (content) {
+        const match = content.match(/window\.PRAMOGH_CONTACTS\s*=\s*(\[[\s\S]*\])\s*;?/);
+        if (match) {
+          try { existingContacts = JSON.parse(match[1]); } catch (e) {
+            console.error('JSON parse failed on contacts.js');
+          }
+        }
+      }
+
+      // SAFETY: If file exists and had content but we read 0 contacts,
+      // something went wrong — do NOT overwrite with just the new contact
+      if (fileExists && existingContacts.length === 0 && fileData.size > 1000) {
+        console.error('SAFETY ABORT: contacts.js exists (' + fileData.size + ' bytes) but parsed 0 contacts. Refusing to overwrite.');
+        throw new Error('Safety abort: could not read existing contacts from ' + fileData.size + ' byte file');
       }
     }
+
     const contactMap = new Map();
     for (const c of existingContacts) {
       if (c.phone) contactMap.set(c.phone, c);

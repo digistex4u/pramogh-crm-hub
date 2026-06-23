@@ -215,16 +215,42 @@ export default async function handler(req, res) {
       const fileData = await getResp.json();
       existingSha = fileData.sha;
 
-      // Decode and parse
-      const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
-      // Extract JSON array from: window.PRAMOGH_CONTACTS = [...];
-      const jsonMatch = content.match(/window\.PRAMOGH_CONTACTS\s*=\s*(\[[\s\S]*\])\s*;?/);
-      if (jsonMatch) {
-        try {
-          existingContacts = JSON.parse(jsonMatch[1]);
-        } catch (e) {
-          log.push(`${ts()} Warning: could not parse existing contacts.js, starting fresh`);
+      let content = '';
+
+      if (fileData.content) {
+        // File ≤ 1MB — content returned inline
+        content = Buffer.from(fileData.content, 'base64').toString('utf-8');
+      } else if (fileData.sha) {
+        // File > 1MB — fetch via Git Blob API
+        log.push(`${ts()} contacts.js > 1MB, using Blob API`);
+        const blobUrl = `https://api.github.com/repos/${repo}/git/blobs/${fileData.sha}`;
+        const blobResp = await fetch(blobUrl, { headers: ghHeaders });
+        if (blobResp.ok) {
+          const blobData = await blobResp.json();
+          if (blobData.content) {
+            content = Buffer.from(blobData.content, 'base64').toString('utf-8');
+          }
+        } else {
+          log.push(`${ts()} ERROR: Blob API failed: ${blobResp.status}`);
         }
+      }
+
+      if (content) {
+        // Extract JSON array from: window.PRAMOGH_CONTACTS = [...];
+        const jsonMatch = content.match(/window\.PRAMOGH_CONTACTS\s*=\s*(\[[\s\S]*\])\s*;?/);
+        if (jsonMatch) {
+          try {
+            existingContacts = JSON.parse(jsonMatch[1]);
+          } catch (e) {
+            log.push(`${ts()} Warning: could not parse existing contacts.js, starting fresh`);
+          }
+        }
+      }
+
+      // SAFETY: refuse to overwrite if file is large but parsed 0 contacts
+      if (existingContacts.length === 0 && fileData.size > 1000) {
+        log.push(`${ts()} SAFETY ABORT: contacts.js is ${fileData.size} bytes but parsed 0 contacts`);
+        throw new Error('Safety abort: could not read existing contacts from ' + fileData.size + ' byte file');
       }
     }
 
