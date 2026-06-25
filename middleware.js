@@ -2,7 +2,7 @@
 // Users login once via /api/auth, then browse freely for 24 hours
 
 export const config = {
-  matcher: ['/((?!api/auth|api/freshsales-webhook|api/sync-freshsales|api/update-db|favicon.ico).*)'],
+  matcher: ['/((?!api/auth|api/freshsales-webhook|api/sync-freshsales|api/update-db|api/flush-queue|favicon.ico).*)'],
 };
 
 export default function middleware(request) {

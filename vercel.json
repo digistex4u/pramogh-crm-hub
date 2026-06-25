@@ -1,5 +1,11 @@
 {
     "version": 2,
     "buildCommand": "",
-    "outputDirectory": "public"
+    "outputDirectory": "public",
+    "crons": [
+        {
+            "path": "/api/flush-queue",
+            "schedule": "*/5 * * * *"
+        }
+    ]
 }
