@@ -1,6 +1,7 @@
-// Vercel Serverless Function — receives real-time contact pushes from Freshsales workflows
-// Also maintains webhook-log.js for dashboard visibility
-// v2: Added WhatsApp automation engine — evaluates rules after contact merge
+// Vercel Serverless Function — receives real-time contact pushes from Freshsales
+// v3: QUEUE-BASED — appends to tiny queue.js instead of 16MB contacts.js
+// A cron job (/api/flush-queue) merges the queue into contacts.js every 5 minutes
+// Automations still fire in real-time (no delay)
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -13,23 +14,27 @@ export default async function handler(req, res) {
 
   const githubToken = process.env.GITHUB_TOKEN;
   if (!githubToken) return res.status(500).json({ error: 'GITHUB_TOKEN not set' });
-
   const repo = process.env.GITHUB_REPO || 'digistex4u/pramogh-crm-hub';
 
   try {
     const raw = req.body || {};
 
-    // Normalize all keys to lowercase for case-insensitive matching
+    // ── Normalize fields ──
     const data = {};
     for (const [k, v] of Object.entries(raw)) {
-      data[k.toLowerCase().trim()] = v;
+      const lk = k.toLowerCase().trim();
+      data[lk] = v;
+      // Freshsales prefixes: contact_cf_xxx → xxx, contact_xxx → xxx
+      if (lk.startsWith('contact_cf_')) {
+        data[lk.slice(11)] = v;
+      } else if (lk.startsWith('contact_')) {
+        data[lk.slice(8)] = v;
+      }
     }
 
-    // Log received fields for debugging
-    console.log('Webhook received fields:', Object.keys(raw).join(', '));
-    console.log('Webhook values:', JSON.stringify(raw).slice(0, 500));
+    console.log('Webhook fields:', Object.keys(raw).join(', '));
 
-    // Find phone - try every possible field name
+    // ── Extract phone ──
     const phone = cleanPhone(
       data['mobile'] || data['mobile number'] || data['mobile_number'] ||
       data['contact number'] || data['contact_number'] || data['phone'] ||
@@ -39,33 +44,20 @@ export default async function handler(req, res) {
     );
 
     if (!phone) {
-      // Log the error to webhook-log.js (fire-and-forget)
-      appendLog({
-        ts: new Date().toISOString(),
-        phone: '',
-        name: '',
-        action: 'error',
-        status: 'fail',
-        error: 'No valid phone number found',
-        received_fields: Object.keys(raw).slice(0, 15),
-        received_sample: JSON.stringify(raw).slice(0, 300),
-      }, repo, githubToken).catch(e => console.error('Log write error:', e.message));
-
       return res.status(400).json({
         error: 'No valid phone number found',
         received_fields: Object.keys(raw),
-        received_data: JSON.stringify(raw).slice(0, 1000)
       });
     }
 
+    // ── Build contact object ──
     const contact = { phone };
 
     // Name
     const fname = data['first name'] || data['first_name'] || data['firstname'] || '';
     const lname = data['last name'] || data['last_name'] || data['lastname'] || '';
     const fullname = data['display name'] || data['display_name'] || data['name'] || data['full name'] || data['full_name'] || '';
-    const name = cleanName(fullname || [fname, lname].filter(Boolean).join(' ') || 'Unknown');
-    contact.name = name;
+    contact.name = cleanName(fullname || [fname, lname].filter(Boolean).join(' ') || 'Unknown');
 
     // Email
     const email = data['email'] || data['email id'] || data['email_id'] || data['email address'] || data['email_address'] || '';
@@ -78,18 +70,32 @@ export default async function handler(req, res) {
     if (state) contact.state = state;
 
     // Sales owner
-    const owner = data['sales owner'] || data['sales_owner'] || data['owner'] || data['assigned to'] || '';
+    const owner = data['sales owner'] || data['sales_owner'] || data['owner'] || data['owner_name'] || data['assigned to'] || '';
     if (owner) contact.sales_owner = typeof owner === 'object' ? (owner.display_name || owner.name || JSON.stringify(owner)) : owner;
 
-    // Lead source
-    const source = data['lead source'] || data['lead_source'] || data['source'] || '';
+    // Source
+    const source = data['lead source'] || data['lead_source'] || data['source'] || data['primary_source'] || '';
     if (source) contact.source = source;
+    const subSource = data['sub_source'] || data['sub source'] || '';
+    if (subSource) contact.sub_source = subSource;
 
     // Stage
-    const stage = data['lifecycle stage'] || data['lifecycle_stage'] || data['stage'] || data['lead stage'] || data['lead_stage'] || data['status'] || '';
+    const stage = data['lifecycle stage'] || data['lifecycle_stage'] || data['stage'] || data['lead stage'] || data['lead_stage'] || data['status'] || data['contact_status_name'] || '';
     if (stage) contact.stage = stage;
 
-    // Custom fields
+    // Customer type
+    const custType = data['customer_type'] || data['customer type'] || '';
+    if (custType) contact.customer_type = custType;
+
+    // Created at
+    const createdAt = data['created_at'] || '';
+    if (createdAt) contact.created_at = createdAt;
+
+    // Freshsales ID
+    const fsId = data['id'] || data['contact id'] || data['contact_id'] || '';
+    if (fsId) contact.fs_id = fsId;
+
+    // Custom fields (scan all)
     for (const [k, v] of Object.entries(data)) {
       if (!v || v === '') continue;
       const lk = k.toLowerCase();
@@ -98,69 +104,114 @@ export default async function handler(req, res) {
       if (lk.includes('lost reason') || lk.includes('lost_reason') || lk.includes('reason_lost'))
         contact.lost_reason = v;
       if (lk.includes('tag')) contact.tags = v;
-      if (lk.includes('deal value') || lk.includes('deal_value') || lk.includes('amount'))
+      if (lk.includes('deal value') || lk.includes('deal_value'))
         contact.deal_value = parseFloat(v) || 0;
-      if (lk.includes('order count') || lk.includes('order_count'))
+      if (lk.includes('order count') || lk.includes('order_count') || lk.includes('total_order_count'))
         contact.order_count = parseInt(v) || 0;
       if (lk.includes('won amount') || lk.includes('won_amount') || lk.includes('total_won'))
         contact.won_amount = parseFloat(v) || 0;
     }
 
     contact.updated_at = new Date().toISOString();
-    const fsId = data['id'] || data['contact id'] || data['contact_id'] || '';
-    if (fsId) contact.fs_id = fsId;
 
-    const result = await mergeAndPush(contact, repo, githubToken);
+    // Queue metadata (stripped at flush time)
+    contact._queued_at = new Date().toISOString();
+    contact._received_fields = Object.keys(raw).slice(0, 15);
 
-    // Log success to webhook-log.js (fire-and-forget)
-    appendLog({
-      ts: new Date().toISOString(),
-      phone: contact.phone,
-      name: contact.name,
-      email: contact.email || '',
-      action: result.action,
-      status: 'ok',
-      total: result.total,
-      fields_received: Object.keys(raw).slice(0, 15),
-    }, repo, githubToken).catch(e => console.error('Log write error:', e.message));
+    // ── Append to queue.js (tiny file, fast) ──
+    const queueResult = await appendToQueue(contact, repo, githubToken);
 
-    // ═══════════════════════════════════════════════════
-    // AUTOMATION ENGINE — evaluate rules after merge
-    // ═══════════════════════════════════════════════════
+    // ── Fire automations immediately (real-time WhatsApp) ──
     let autoResults = [];
     try {
-      autoResults = await evaluateAutomations(contact, result.action, repo, githubToken);
+      autoResults = await evaluateAutomations(contact, 'both', repo, githubToken);
     } catch (autoErr) {
-      console.error('Automation engine error:', autoErr.message);
-      // Don't fail the webhook because of automation errors
+      console.error('Automation error:', autoErr.message);
     }
 
     return res.status(200).json({
-      success: true, phone: contact.phone, name: contact.name,
-      action: result.action, total: result.total, commit: result.sha,
+      success: true,
+      phone: contact.phone,
+      name: contact.name,
+      queued: true,
+      queue_size: queueResult.total,
       automations_fired: autoResults.length,
       automations: autoResults.map(r => ({ name: r.name, sent: r.sent, error: r.error })),
     });
+
   } catch (err) {
     console.error('Webhook error:', err.message);
-
-    // Log crash to webhook-log.js (fire-and-forget)
-    appendLog({
-      ts: new Date().toISOString(),
-      phone: '',
-      name: '',
-      action: 'crash',
-      status: 'fail',
-      error: err.message,
-    }, repo, githubToken).catch(() => {});
-
     return res.status(500).json({ error: err.message });
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// AUTOMATION ENGINE
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// QUEUE: append contact to tiny queue.js file
+// ═══════════════════════════════════════════════
+
+async function appendToQueue(contact, repo, token, retries = 5) {
+  const filePath = 'public/queue.js';
+  const apiUrl = `https://api.github.com/repos/${repo}/contents/${filePath}`;
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+    'User-Agent': 'pramogh-crm-queue',
+  };
+
+  for (let attempt = 0; attempt < retries; attempt++) {
+    let queue = [];
+    let sha = null;
+
+    const getResp = await fetch(apiUrl, { headers });
+    if (getResp.ok) {
+      const fileData = await getResp.json();
+      sha = fileData.sha;
+      if (fileData.content) {
+        const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
+        const match = content.match(/window\.PRAMOGH_QUEUE\s*=\s*(\[[\s\S]*\])\s*;?/);
+        if (match) {
+          try { queue = JSON.parse(match[1]); } catch (e) {}
+        }
+      }
+    }
+
+    // Dedup: if same phone already in queue, merge (keep latest data)
+    const existing = queue.findIndex(q => q.phone === contact.phone);
+    if (existing >= 0) {
+      queue[existing] = { ...queue[existing], ...contact };
+    } else {
+      queue.push(contact);
+    }
+
+    const jsContent = '// Pramogh CRM Webhook Queue — pending contacts awaiting flush\n// Updated: ' + new Date().toISOString() + '\n// ' + queue.length + ' queued\nwindow.PRAMOGH_QUEUE = ' + JSON.stringify(queue) + ';\n';
+
+    const putBody = {
+      message: 'Queue: +' + contact.phone + ' (' + contact.name + ') [' + queue.length + ' pending]',
+      content: Buffer.from(jsContent).toString('base64'),
+      branch: 'main',
+    };
+    if (sha) putBody.sha = sha;
+
+    const putResp = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(putBody) });
+    if (putResp.ok) {
+      return { total: queue.length };
+    }
+
+    if (putResp.status === 409 && attempt < retries - 1) {
+      // SHA conflict — retry with backoff
+      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      continue;
+    }
+
+    const err = await putResp.text();
+    throw new Error('Queue push failed: ' + putResp.status + ' ' + err.slice(0, 200));
+  }
+}
+
+// ═══════════════════════════════════════════════
+// AUTOMATION ENGINE (same as before)
+// ═══════════════════════════════════════════════
 
 async function evaluateAutomations(contact, contactAction, repo, githubToken) {
   const ghHeaders = {
@@ -169,7 +220,6 @@ async function evaluateAutomations(contact, contactAction, repo, githubToken) {
     'User-Agent': 'pramogh-crm-automation',
   };
 
-  // 1. Read automations from GitHub
   const automations = await readGitHubFile(
     `https://api.github.com/repos/${repo}/contents/public/automations.js`,
     ghHeaders,
@@ -178,7 +228,6 @@ async function evaluateAutomations(contact, contactAction, repo, githubToken) {
 
   if (!automations || !automations.length) return [];
 
-  // 2. Read recent automation log for cooldown checks
   const recentLog = await readGitHubFile(
     `https://api.github.com/repos/${repo}/contents/public/automation-log.js`,
     ghHeaders,
@@ -187,16 +236,10 @@ async function evaluateAutomations(contact, contactAction, repo, githubToken) {
 
   const results = [];
 
-  // 3. Evaluate each enabled automation
   for (const auto of automations) {
     if (!auto.enabled) continue;
 
-    // Check trigger type
-    if (auto.trigger_on === 'create' && contactAction !== 'new') continue;
-    if (auto.trigger_on === 'update' && contactAction !== 'updated') continue;
-    // 'both' matches either
-
-    // Check cooldown
+    // Cooldown check
     if (auto.cooldown_hours && auto.cooldown_hours > 0 && recentLog) {
       const cooldownMs = auto.cooldown_hours * 3600000;
       const recentFire = recentLog.find(
@@ -205,22 +248,18 @@ async function evaluateAutomations(contact, contactAction, repo, githubToken) {
              e.status === 'sent' &&
              (Date.now() - new Date(e.ts).getTime()) < cooldownMs
       );
-      if (recentFire) {
-        console.log(`Automation "${auto.name}" skipped for ${contact.phone} — cooldown active`);
-        continue;
-      }
+      if (recentFire) continue;
     }
 
-    // Evaluate conditions (ALL must match = AND logic)
-    const matched = evaluateConditions(auto.conditions, contact);
-    if (!matched) continue;
+    // Evaluate conditions
+    if (!evaluateConditions(auto.conditions, contact)) continue;
 
-    // 4. Fire the automation — send WATI template
+    // Fire
     const fireResult = await fireAutomation(auto, contact);
     results.push(fireResult);
   }
 
-  // 5. Log all results to automation-log.js (fire-and-forget)
+  // Log results
   if (results.length > 0) {
     appendAutomationLog(results, contact, repo, githubToken, ghHeaders)
       .catch(e => console.error('Automation log error:', e.message));
@@ -230,7 +269,7 @@ async function evaluateAutomations(contact, contactAction, repo, githubToken) {
 }
 
 function evaluateConditions(conditions, contact) {
-  if (!conditions || !conditions.length) return true; // No conditions = always match
+  if (!conditions || !conditions.length) return true;
 
   for (const cond of conditions) {
     const { field, operator, value } = cond;
@@ -272,23 +311,15 @@ function evaluateConditions(conditions, contact) {
         break;
       }
       default:
-        return false; // Unknown operator = fail safe
+        return false;
     }
   }
-
-  return true; // All conditions passed
+  return true;
 }
 
 function getContactField(contact, field) {
-  // Direct field match
   if (contact[field] !== undefined) return contact[field];
-  // Try common aliases
-  const aliases = {
-    'status': 'stage',
-    'product': 'gemstone',
-    'product_name': 'gemstone',
-    'owner': 'sales_owner',
-  };
+  const aliases = { 'status': 'stage', 'product': 'gemstone', 'product_name': 'gemstone', 'owner': 'sales_owner' };
   if (aliases[field] && contact[aliases[field]] !== undefined) return contact[aliases[field]];
   return undefined;
 }
@@ -296,98 +327,65 @@ function getContactField(contact, field) {
 async function fireAutomation(auto, contact) {
   const actionCfg = auto.action || {};
   const result = {
-    automation_id: auto.id,
-    name: auto.name,
-    phone: contact.phone,
-    contact_name: contact.name,
-    ts: new Date().toISOString(),
+    automation_id: auto.id, name: auto.name, phone: contact.phone,
+    contact_name: contact.name, ts: new Date().toISOString(),
   };
 
   try {
-    // Get WATI channel config
     const channels = JSON.parse(process.env.WATI_CHANNELS || '{}');
     const channel = channels[actionCfg.channel_id];
-
-    if (!channel) {
-      result.status = 'error';
-      result.error = 'Channel not found: ' + (actionCfg.channel_id || 'none');
-      result.sent = false;
-      return result;
-    }
+    if (!channel) { result.status = 'error'; result.error = 'Channel not found'; result.sent = false; return result; }
 
     const baseUrl = channel.url.replace(/\/$/, '');
     const token = channel.token;
 
-    // Build custom params — map template {{variables}} to contact fields
     const customParams = [];
     if (actionCfg.custom_params && Array.isArray(actionCfg.custom_params)) {
       for (const param of actionCfg.custom_params) {
         const val = getContactField(contact, param.field);
-        customParams.push({
-          name: param.name,
-          value: val !== undefined && val !== null ? String(val) : '',
-        });
+        customParams.push({ name: param.name, value: val != null ? String(val) : '' });
       }
     }
 
-    // Send WATI template message
-    const endpoint = `${baseUrl}/api/v1/sendTemplateMessage`;
     const payload = {
       broadcast_name: actionCfg.broadcast_name || 'pramogh_auto_' + auto.id,
       template_name: actionCfg.template_name,
-      receivers: [{
-        whatsappNumber: contact.phone.replace(/^\+/, ''),
-        customParams: customParams,
-      }],
+      receivers: [{ whatsappNumber: contact.phone.replace(/^\+/, ''), customParams }],
     };
 
-    console.log(`Automation "${auto.name}" → sending "${actionCfg.template_name}" to ${contact.phone}`);
+    console.log(`Auto "${auto.name}" → "${actionCfg.template_name}" to ${contact.phone}`);
 
-    const resp = await fetch(endpoint, {
+    const resp = await fetch(`${baseUrl}/api/v1/sendTemplateMessage`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': token.startsWith('Bearer ') ? token : `Bearer ${token}`,
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': token.startsWith('Bearer ') ? token : `Bearer ${token}` },
       body: JSON.stringify(payload),
     });
 
     if (resp.ok) {
-      result.status = 'sent';
-      result.sent = true;
-      result.template = actionCfg.template_name;
-      console.log(`Automation "${auto.name}" ✅ sent to ${contact.phone}`);
+      result.status = 'sent'; result.sent = true; result.template = actionCfg.template_name;
     } else {
       const errText = await resp.text();
       let reason = `HTTP ${resp.status}`;
-      try { const ej = JSON.parse(errText); reason = ej.message || ej.error || ej.result || reason; } catch (e) {}
-      result.status = 'failed';
-      result.sent = false;
-      result.error = reason;
-      console.error(`Automation "${auto.name}" ❌ failed for ${contact.phone}: ${reason}`);
+      try { const ej = JSON.parse(errText); reason = ej.message || ej.error || reason; } catch (e) {}
+      result.status = 'failed'; result.sent = false; result.error = reason;
     }
   } catch (err) {
-    result.status = 'error';
-    result.sent = false;
-    result.error = err.message || 'Network error';
-    console.error(`Automation "${auto.name}" ❌ error: ${err.message}`);
+    result.status = 'error'; result.sent = false; result.error = err.message;
   }
-
   return result;
 }
 
-// ── GitHub File Helpers ──
+// ── GitHub helpers ──
 
 async function readGitHubFile(url, headers, regex) {
   try {
     const resp = await fetch(url, { headers });
     if (!resp.ok) return [];
     const data = await resp.json();
+    if (!data.content) return [];
     const content = Buffer.from(data.content, 'base64').toString('utf-8');
     const match = content.match(regex);
-    if (match) {
-      try { return JSON.parse(match[1]); } catch (e) {}
-    }
+    if (match) { try { return JSON.parse(match[1]); } catch (e) {} }
   } catch (e) {}
   return [];
 }
@@ -404,52 +402,36 @@ async function appendAutomationLog(results, contact, repo, githubToken, ghHeader
     if (getResp.ok) {
       const fileData = await getResp.json();
       sha = fileData.sha;
-      const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
-      const match = content.match(/window\.PRAMOGH_AUTOMATION_LOG\s*=\s*(\[[\s\S]*\])\s*;?/);
-      if (match) {
-        try { existingLog = JSON.parse(match[1]); } catch (e) {}
+      if (fileData.content) {
+        const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
+        const match = content.match(/window\.PRAMOGH_AUTOMATION_LOG\s*=\s*(\[[\s\S]*\])\s*;?/);
+        if (match) { try { existingLog = JSON.parse(match[1]); } catch (e) {} }
       }
     }
 
-    // Prepend new entries (newest first), cap at 500
     for (const r of results.reverse()) {
       existingLog.unshift({
-        ts: r.ts,
-        automation_id: r.automation_id,
-        automation_name: r.name,
-        phone: r.phone,
-        contact_name: r.contact_name,
-        status: r.status,
-        template: r.template || '',
-        error: r.error || '',
+        ts: r.ts, automation_id: r.automation_id, automation_name: r.name,
+        phone: r.phone, contact_name: r.contact_name, status: r.status,
+        template: r.template || '', error: r.error || '',
       });
     }
     if (existingLog.length > 500) existingLog = existingLog.slice(0, 500);
 
     const jsContent = '// Pramogh CRM Automation Execution Log\n// Updated: ' + new Date().toISOString() + '\n// ' + existingLog.length + ' entries\nwindow.PRAMOGH_AUTOMATION_LOG = ' + JSON.stringify(existingLog) + ';\n';
 
-    const putBody = {
-      message: 'AutoLog: ' + results.length + ' automation(s) fired for ' + contact.phone,
-      content: Buffer.from(jsContent).toString('base64'),
-      branch: 'main',
-    };
+    const putBody = { message: 'AutoLog: ' + results.length + ' fired for ' + contact.phone, content: Buffer.from(jsContent).toString('base64'), branch: 'main' };
     if (sha) putBody.sha = sha;
 
     const putResp = await fetch(apiUrl, { method: 'PUT', headers: ghHeaders, body: JSON.stringify(putBody) });
     if (putResp.ok) return;
-
-    if (putResp.status === 409 && attempt < 1) {
-      await new Promise(r => setTimeout(r, 500));
-      continue;
-    }
-    console.error('Automation log push failed:', putResp.status);
+    if (putResp.status === 409 && attempt < 1) { await new Promise(r => setTimeout(r, 500)); continue; }
     return;
   }
 }
 
-// ── Original Contact Merge Logic ──
+// ── Utility ──
 
-// Scan all values for anything that looks like an Indian phone number
 function findPhoneInValues(obj) {
   for (const v of Object.values(obj)) {
     if (!v) continue;
@@ -460,153 +442,6 @@ function findPhoneInValues(obj) {
     }
   }
   return '';
-}
-
-async function mergeAndPush(contact, repo, token, retries = 3) {
-  const filePath = 'public/contacts.js';
-  const apiUrl = `https://api.github.com/repos/${repo}/contents/${filePath}`;
-  const headers = {
-    'Authorization': `Bearer ${token}`,
-    'Accept': 'application/vnd.github.v3+json',
-    'Content-Type': 'application/json',
-    'User-Agent': 'pramogh-crm-webhook',
-  };
-  for (let attempt = 0; attempt < retries; attempt++) {
-    let existingContacts = [];
-    let sha = null;
-    let fileExists = false;
-
-    const getResp = await fetch(apiUrl, { headers });
-    if (getResp.ok) {
-      const fileData = await getResp.json();
-      sha = fileData.sha;
-      fileExists = true;
-
-      let content = '';
-
-      if (fileData.content) {
-        // File ≤ 1MB — content returned inline by Contents API
-        content = Buffer.from(fileData.content, 'base64').toString('utf-8');
-      } else if (fileData.sha) {
-        // File > 1MB — Contents API omits content; fetch via Git Blob API
-        console.log('contacts.js > 1MB, using Blob API (sha: ' + fileData.sha.slice(0, 7) + ')');
-        const blobUrl = `https://api.github.com/repos/${repo}/git/blobs/${fileData.sha}`;
-        const blobResp = await fetch(blobUrl, { headers });
-        if (blobResp.ok) {
-          const blobData = await blobResp.json();
-          if (blobData.content) {
-            content = Buffer.from(blobData.content, 'base64').toString('utf-8');
-          }
-        } else {
-          console.error('Blob API failed:', blobResp.status);
-        }
-      }
-
-      if (content) {
-        const match = content.match(/window\.PRAMOGH_CONTACTS\s*=\s*(\[[\s\S]*\])\s*;?/);
-        if (match) {
-          try { existingContacts = JSON.parse(match[1]); } catch (e) {
-            console.error('JSON parse failed on contacts.js');
-          }
-        }
-      }
-
-      // SAFETY: If file exists and had content but we read 0 contacts,
-      // something went wrong — do NOT overwrite with just the new contact
-      if (fileExists && existingContacts.length === 0 && fileData.size > 1000) {
-        console.error('SAFETY ABORT: contacts.js exists (' + fileData.size + ' bytes) but parsed 0 contacts. Refusing to overwrite.');
-        throw new Error('Safety abort: could not read existing contacts from ' + fileData.size + ' byte file');
-      }
-    }
-
-    const contactMap = new Map();
-    for (const c of existingContacts) {
-      if (c.phone) contactMap.set(c.phone, c);
-    }
-    let action = 'new';
-    if (contactMap.has(contact.phone)) {
-      const existing = contactMap.get(contact.phone);
-      const merged = { ...existing };
-      for (const [k, v] of Object.entries(contact)) {
-        if (v !== undefined && v !== '' && v !== null) merged[k] = v;
-      }
-      contactMap.set(contact.phone, merged);
-      action = 'updated';
-    } else {
-      contactMap.set(contact.phone, contact);
-    }
-    const finalContacts = Array.from(contactMap.values());
-    const jsContent = '// Pramogh CRM Contacts Database\n// Webhook update: ' + new Date().toISOString() + '\n// ' + finalContacts.length + ' unique contacts\nwindow.PRAMOGH_CONTACTS = ' + JSON.stringify(finalContacts) + ';\n';
-    const putBody = {
-      message: 'Webhook: ' + action + ' ' + contact.phone + ' (' + contact.name + ')',
-      content: Buffer.from(jsContent).toString('base64'),
-      branch: 'main',
-    };
-    if (sha) putBody.sha = sha;
-    const putResp = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(putBody) });
-    if (putResp.ok) {
-      const result = await putResp.json();
-      return { action, total: finalContacts.length, sha: result.content?.sha?.slice(0, 7) };
-    }
-    if (putResp.status === 409 && attempt < retries - 1) {
-      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-      continue;
-    }
-    const err = await putResp.text();
-    throw new Error('GitHub push failed: ' + putResp.status + ' ' + err.slice(0, 200));
-  }
-}
-
-// ── Webhook Activity Log ──
-async function appendLog(entry, repo, token, retries = 2) {
-  const filePath = 'public/webhook-log.js';
-  const apiUrl = `https://api.github.com/repos/${repo}/contents/${filePath}`;
-  const headers = {
-    'Authorization': `Bearer ${token}`,
-    'Accept': 'application/vnd.github.v3+json',
-    'Content-Type': 'application/json',
-    'User-Agent': 'pramogh-crm-webhook-log',
-  };
-
-  for (let attempt = 0; attempt < retries; attempt++) {
-    let existingLog = [];
-    let sha = null;
-
-    const getResp = await fetch(apiUrl, { headers });
-    if (getResp.ok) {
-      const fileData = await getResp.json();
-      sha = fileData.sha;
-      const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
-      const match = content.match(/window\.PRAMOGH_WEBHOOK_LOG\s*=\s*(\[[\s\S]*\])\s*;?/);
-      if (match) {
-        try { existingLog = JSON.parse(match[1]); } catch (e) {}
-      }
-    }
-
-    // Prepend new entry (newest first), cap at 500
-    existingLog.unshift(entry);
-    if (existingLog.length > 500) existingLog = existingLog.slice(0, 500);
-
-    const jsContent = '// Pramogh CRM Webhook Activity Log\n// Updated: ' + new Date().toISOString() + '\n// ' + existingLog.length + ' entries\nwindow.PRAMOGH_WEBHOOK_LOG = ' + JSON.stringify(existingLog) + ';\n';
-
-    const putBody = {
-      message: 'Log: ' + (entry.action || 'event') + ' ' + (entry.phone || entry.error || '').slice(0, 30),
-      content: Buffer.from(jsContent).toString('base64'),
-      branch: 'main',
-    };
-    if (sha) putBody.sha = sha;
-
-    const putResp = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(putBody) });
-    if (putResp.ok) return;
-
-    if (putResp.status === 409 && attempt < retries - 1) {
-      await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
-      continue;
-    }
-    // Non-critical — just log and move on
-    console.error('Webhook log push failed:', putResp.status);
-    return;
-  }
 }
 
 function cleanPhone(raw) {
