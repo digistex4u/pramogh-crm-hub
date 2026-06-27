@@ -1,4 +1,4 @@
 // Pramogh CRM Webhook Queue — pending contacts awaiting flush
-// Updated: 2026-06-27T17:19:18.131Z
-// 1 queued
-window.PRAMOGH_QUEUE = [{"phone":"8658066182","name":"Prakash Kumar Dash Prakash Kumar Dash","email":"prakash00bl@gmail.com","city":"Sundargarh","state":"Odisha","source":"DOPS (Direct Order Placed on Shopify)","sub_source":"DOPS (Direct Order Placed on Shopify)","stage":"New","created_at":"06-27-2026 05:19:14 PM","updated_at":"2026-06-27T17:19:17.965Z","_queued_at":"2026-06-27T17:19:17.967Z","_received_fields":["contact_city","contact_state","contact_owner_name","contact_cf_primary_source","contact_cf_sub_source","contact_lost_reason_name","contact_cf_clone_of_product_capf","contact_cf_last_product","contact_email","contact_created_at","contact_updated_at","contact_cf_checkout_link","contact_cf_customer_type","contact_contact_status_name","contact_cf_lifetime_value"]}];
+// Updated: 2026-06-27T17:20:21.538Z
+// 0 queued
+window.PRAMOGH_QUEUE = [];
