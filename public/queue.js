@@ -1,4 +1,4 @@
 // Pramogh CRM Webhook Queue — pending contacts awaiting flush
-// Updated: 2026-06-29T13:00:10.715Z
-// 2 queued
-window.PRAMOGH_QUEUE = [{"phone":"8986909965","name":"918986909965","email":"918986909965@wati.com","source":"WhatsApp","sub_source":"WhatsApp","stage":"New","created_at":"06-29-2026 12:58:04 PM","updated_at":"2026-06-29T12:58:09.368Z","_queued_at":"2026-06-29T12:58:09.371Z","_received_fields":["contact_city","contact_state","contact_owner_name","contact_cf_primary_source","contact_cf_sub_source","contact_lost_reason_name","contact_cf_clone_of_product_capf","contact_cf_last_product","contact_email","contact_created_at","contact_updated_at","contact_cf_checkout_link","contact_cf_customer_type","contact_contact_status_name","contact_cf_lifetime_value"]},{"phone":"9831649489","name":"Sanjoy Sarkar","email":"919831649489@wati.com","source":"WhatsApp","sub_source":"WhatsApp","stage":"New","created_at":"06-29-2026 01:00:05 PM","updated_at":"2026-06-29T13:00:10.466Z","_queued_at":"2026-06-29T13:00:10.469Z","_received_fields":["contact_city","contact_state","contact_owner_name","contact_cf_primary_source","contact_cf_sub_source","contact_lost_reason_name","contact_cf_clone_of_product_capf","contact_cf_last_product","contact_email","contact_created_at","contact_updated_at","contact_cf_checkout_link","contact_cf_customer_type","contact_contact_status_name","contact_cf_lifetime_value"]}];
+// Updated: 2026-06-29T13:00:54.317Z
+// 0 queued
+window.PRAMOGH_QUEUE = [];
