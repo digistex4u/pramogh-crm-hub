@@ -1,4 +1,4 @@
 // Pramogh CRM Webhook Queue — pending contacts awaiting flush
-// Updated: 2026-06-29T19:05:15.833Z
-// 0 queued
-window.PRAMOGH_QUEUE = [];
+// Updated: 2026-06-29T19:55:09.690Z
+// 1 queued
+window.PRAMOGH_QUEUE = [{"phone":"9818396213","name":"Khan .","email":"infinite81interior@gmail.com","city":"GAUTAM BUDDHA NAGAR","state":"Uttar Pradesh","stage":"New","created_at":"06-29-2026 07:54:58 PM","updated_at":"2026-06-29T19:55:09.489Z","_queued_at":"2026-06-29T19:55:09.491Z","_received_fields":["contact_city","contact_state","contact_owner_name","contact_cf_primary_source","contact_cf_sub_source","contact_lost_reason_name","contact_cf_clone_of_product_capf","contact_cf_last_product","contact_email","contact_created_at","contact_updated_at","contact_cf_checkout_link","contact_cf_customer_type","contact_contact_status_name","contact_cf_lifetime_value"]}];
