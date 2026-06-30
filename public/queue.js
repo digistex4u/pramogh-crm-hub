@@ -1,4 +1,4 @@
 // Pramogh CRM Webhook Queue — pending contacts awaiting flush
-// Updated: 2026-06-30T07:28:07.755Z
-// 2 queued
-window.PRAMOGH_QUEUE = [{"phone":"7085917278","name":"Bijoy Dhanuk","email":"7085917278@gmail.com","sales_owner":"Sahil Bhat","source":"Referral","sub_source":"Referral","stage":"New","created_at":"06-30-2026 07:27:33 AM","updated_at":"2026-06-30T07:27:39.856Z","_queued_at":"2026-06-30T07:27:39.858Z","_received_fields":["contact_city","contact_state","contact_owner_name","contact_cf_primary_source","contact_cf_sub_source","contact_lost_reason_name","contact_cf_clone_of_product_capf","contact_cf_last_product","contact_email","contact_created_at","contact_updated_at","contact_cf_checkout_link","contact_cf_customer_type","contact_contact_status_name","contact_cf_lifetime_value"]},{"phone":"+9193543082","name":"Ashwani Baluni","email":"9193543082@wati.com","source":"WhatsApp","sub_source":"WhatsApp","stage":"New","created_at":"06-30-2026 07:28:05 AM","updated_at":"2026-06-30T07:28:07.647Z","_queued_at":"2026-06-30T07:28:07.647Z","_received_fields":["contact_city","contact_state","contact_owner_name","contact_cf_primary_source","contact_cf_sub_source","contact_lost_reason_name","contact_cf_clone_of_product_capf","contact_cf_last_product","contact_email","contact_created_at","contact_updated_at","contact_cf_checkout_link","contact_cf_customer_type","contact_contact_status_name","contact_cf_lifetime_value"]}];
+// Updated: 2026-06-30T07:30:38.950Z
+// 0 queued
+window.PRAMOGH_QUEUE = [];
