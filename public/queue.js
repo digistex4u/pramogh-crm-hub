@@ -1,4 +1,4 @@
 // Pramogh CRM Webhook Queue — pending contacts awaiting flush
-// Updated: 2026-07-01T08:00:52.767Z
-// 0 queued
-window.PRAMOGH_QUEUE = [];
+// Updated: 2026-07-01T08:15:05.740Z
+// 1 queued
+window.PRAMOGH_QUEUE = [{"phone":"9303975548","name":"Unknown","email":"919303975548@cart.com","source":"Cart Abondaned","stage":"New","created_at":"07-01-2026 08:14:59 AM","updated_at":"2026-07-01T08:15:05.560Z","_queued_at":"2026-07-01T08:15:05.563Z","_received_fields":["contact_city","contact_state","contact_owner_name","contact_cf_primary_source","contact_cf_sub_source","contact_lost_reason_name","contact_cf_clone_of_product_capf","contact_cf_last_product","contact_email","contact_created_at","contact_updated_at","contact_cf_checkout_link","contact_cf_customer_type","contact_contact_status_name","contact_cf_lifetime_value"]}];
